@@ -2,7 +2,15 @@ use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::Token,
-    token_2022::Token2022,
+    token_2022::{
+        spl_token_2022::{
+            extension::{
+                transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions,
+            },
+            state,
+        },
+        Token2022,
+    },
     token_interface::{
         mint_to, transfer_checked, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
     },
@@ -54,6 +62,16 @@ pub struct IssueMintCtx<'info> {
     )]
     pub authority: AccountLoader<'info, Authority>,
     #[account(
+        token::mint = stable_coin,
+        token::authority = fee_collector,
+        token::token_program = token_program,
+    )]
+    pub fee_collector_stable_coin_token_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    #[account(
+        constraint = fee_collector.key() == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
+    )]
+    pub fee_collector: Option<AccountInfo<'info>>,
+    #[account(
         address = Token2022::id()
     )]
     pub token_program_2022: Interface<'info, TokenInterface>,
@@ -69,6 +87,24 @@ pub fn issue_mint_handler<'info>(
     ctx: Context<'_, '_, '_, 'info, IssueMintCtx<'info>>,
     amount: u64,
 ) -> Result<()> {
+    require!(
+        ctx.accounts.payer_stable_coin_token_account.amount >= amount,
+        CustomError::InsufficientAmount
+    );
+
+    let mint_info = ctx.accounts.mint.to_account_info();
+    let mint_data = mint_info.data.borrow();
+    let mint = StateWithExtensions::<state::Mint>::unpack(&mint_data)?;
+    let fee: u64 = if let Ok(transfer_fee_config) = mint.get_extension::<TransferFeeConfig>() {
+        let fee = transfer_fee_config
+            .calculate_epoch_fee(Clock::get()?.epoch, amount)
+            .ok_or(ProgramError::InvalidArgument)?;
+        fee
+    } else {
+        0
+    };
+    drop(mint_data);
+
     let mint_key = ctx.accounts.mint.key();
     let seeds = &[
         b"authority",
@@ -76,6 +112,32 @@ pub fn issue_mint_handler<'info>(
         &[ctx.accounts.authority.load()?.bump],
     ];
     let signer = &[&seeds[..]];
+
+    if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_stable_coin_token_account
+    {
+        if fee > 0 {
+            let fee_collector_info = fee_collector_token_account.to_account_info();
+            transfer_checked(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    TransferChecked {
+                        from: ctx
+                            .accounts
+                            .payer_stable_coin_token_account
+                            .to_account_info(),
+                        mint: ctx.accounts.stable_coin.to_account_info(),
+                        to: fee_collector_info.to_account_info(),
+                        authority: ctx.accounts.payer.to_account_info(),
+                    },
+                ),
+                fee,
+                ctx.accounts.stable_coin.decimals,
+            )?;
+        }
+    } else {
+        require!(fee == 0, CustomError::MissingFeeCollector)
+    }
+
     transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -92,7 +154,7 @@ pub fn issue_mint_handler<'info>(
                 authority: ctx.accounts.payer.to_account_info(),
             },
         ),
-        amount,
+        amount.saturating_sub(fee),
         ctx.accounts.stable_coin.decimals,
     )?;
 
@@ -106,7 +168,7 @@ pub fn issue_mint_handler<'info>(
             },
         )
         .with_signer(signer),
-        amount,
+        amount.saturating_sub(fee),
     )?;
 
     Ok(())

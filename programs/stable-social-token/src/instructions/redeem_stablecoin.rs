@@ -1,14 +1,25 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    associated_token::AssociatedToken, token::Token, token_2022::{spl_token_2022::{
-        extension::{
-            transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions,
+    associated_token::AssociatedToken,
+    token::Token,
+    token_2022::{
+        spl_token_2022::{
+            extension::{
+                transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions,
+            },
+            state,
         },
-        state,
-    }, Token2022}, token_interface::{burn, transfer_checked, Burn, Mint, TokenAccount, TokenInterface, TransferChecked}
+        Token2022,
+    },
+    token_interface::{
+        burn, transfer_checked, Burn, Mint, TokenAccount, TokenInterface, TransferChecked,
+    },
 };
 
-use crate::{error::CustomError, state::{stable_coin, Authority}};
+use crate::{
+    error::CustomError,
+    state::{stable_coin, Authority},
+};
 #[derive(Accounts)]
 pub struct RedeemStableCoinCtx<'info> {
     #[account(mut)]
@@ -49,13 +60,11 @@ pub struct RedeemStableCoinCtx<'info> {
     )]
     pub authority: AccountLoader<'info, Authority>,
     #[account(
-        init_if_needed,
-        payer = payer, 
-        associated_token::mint = stable_coin,
-        associated_token::authority = fee_collector,
-        associated_token::token_program = token_program,
+        token::mint = stable_coin,
+        token::authority = fee_collector,
+        token::token_program = token_program,
     )]
-    pub fee_collector_stable_coin_token_account: Option<InterfaceAccount<'info, TokenAccount>>,
+    pub fee_collector_stable_coin_token_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
     #[account(
         constraint = fee_collector.key() == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
@@ -76,6 +85,11 @@ pub fn redeem_stablecoin_handler<'info>(
     ctx: Context<'_, '_, '_, 'info, RedeemStableCoinCtx<'info>>,
     amount: u64,
 ) -> Result<()> {
+    require!(
+        ctx.accounts.payer_mint_token_account.amount >= amount,
+        CustomError::InsufficientAmount
+    );
+
     let mint_info = ctx.accounts.mint.to_account_info();
     let mint_data = mint_info.data.borrow();
     let mint = StateWithExtensions::<state::Mint>::unpack(&mint_data)?;
@@ -97,38 +111,51 @@ pub fn redeem_stablecoin_handler<'info>(
     ];
     let signer = &[&seeds[..]];
 
-    if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_stable_coin_token_account {
+    if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_stable_coin_token_account
+    {
         if fee > 0 {
             let fee_collector_info = fee_collector_token_account.to_account_info();
             transfer_checked(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
                     TransferChecked {
-                        from: ctx.accounts.authority_stable_coin_token_account.to_account_info(),
+                        from: ctx
+                            .accounts
+                            .authority_stable_coin_token_account
+                            .to_account_info(),
                         mint: ctx.accounts.stable_coin.to_account_info(),
                         to: fee_collector_info,
                         authority: ctx.accounts.authority.to_account_info(),
                     },
-                ).with_signer(signer),
+                )
+                .with_signer(signer),
                 fee,
-                ctx.accounts.stable_coin.decimals
+                ctx.accounts.stable_coin.decimals,
             )?;
         }
-    } else{
+    } else {
         require!(fee == 0, CustomError::MissingFeeCollector);
     }
+
     transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             TransferChecked {
-                from: ctx.accounts.authority_stable_coin_token_account.to_account_info(),
+                from: ctx
+                    .accounts
+                    .authority_stable_coin_token_account
+                    .to_account_info(),
                 mint: ctx.accounts.stable_coin.to_account_info(),
-                to: ctx.accounts.payer_stable_coin_token_account.to_account_info(),
+                to: ctx
+                    .accounts
+                    .payer_stable_coin_token_account
+                    .to_account_info(),
                 authority: ctx.accounts.authority.to_account_info(),
             },
-        ).with_signer(signer),
+        )
+        .with_signer(signer),
         amount.saturating_sub(fee),
-        ctx.accounts.stable_coin.decimals
+        ctx.accounts.stable_coin.decimals,
     )?;
 
     burn(
@@ -139,7 +166,8 @@ pub fn redeem_stablecoin_handler<'info>(
                 from: ctx.accounts.payer_mint_token_account.to_account_info(),
                 authority: ctx.accounts.payer.to_account_info(),
             },
-        ).with_signer(signer),
+        )
+        .with_signer(signer),
         amount,
     )?;
 

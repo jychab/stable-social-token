@@ -8,4 +8,5 @@ pub enum CustomError {
     IncorrectFeeCollector,
     IncorrectTokenProgram,
     UnauthorizedStableCoin,
+    InsufficientAmount,
 }

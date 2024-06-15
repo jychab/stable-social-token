@@ -126,6 +126,10 @@ describe("stable-social-token", () => {
       true,
       TOKEN_2022_PROGRAM_ID
     );
+    const feeCollectorStableCoinTokenAccount = getAssociatedTokenAddressSync(
+      USDC,
+      wallet.publicKey
+    );
     const ix = await program.methods
       .issueMint(new anchor.BN(1 * 10 ** 6))
       .accounts({
@@ -134,6 +138,8 @@ describe("stable-social-token", () => {
         authorityStableCoinTokenAccount: authorityStableTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
         payerStableCoinTokenAccount: payerStableTokenAccount,
+        feeCollector: wallet.publicKey,
+        feeCollectorStableCoinTokenAccount: feeCollectorStableCoinTokenAccount,
       })
       .instruction();
 
@@ -163,7 +169,7 @@ describe("stable-social-token", () => {
       wallet.publicKey
     );
     const ix = await program.methods
-      .redeemStablecoin(new anchor.BN(1 * 10 ** 6))
+      .redeemStablecoin(new anchor.BN(1 * (9995 / 10000) * 10 ** 6))
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
