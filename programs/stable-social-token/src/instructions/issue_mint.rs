@@ -57,14 +57,10 @@ pub struct IssueMintCtx<'info> {
     #[account(
         mut,
         token::mint = stable_coin,
-        token::authority = fee_collector,
         token::token_program = token_program,
+        constraint = fee_collector_stable_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
     pub fee_collector_stable_coin_token_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
-    #[account(
-        constraint = fee_collector.key() == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
-    )]
-    pub fee_collector: Option<AccountInfo<'info>>,
     #[account(
         address = Token2022::id()
     )]
