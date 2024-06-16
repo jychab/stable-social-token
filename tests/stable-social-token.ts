@@ -7,6 +7,9 @@ import {
   TYPE_SIZE,
   getAssociatedTokenAddressSync,
   getMintLen,
+  getOrCreateAssociatedTokenAccount,
+  harvestWithheldTokensToMint,
+  transferChecked,
 } from "@solana/spl-token";
 import { TokenMetadata, pack } from "@solana/spl-token-metadata";
 import {
@@ -27,6 +30,9 @@ describe("stable-social-token", () => {
   const connection = provider.connection;
 
   const randomKey = Keypair.generate().publicKey;
+  const recipient = new PublicKey(
+    "4gfBPGmnvGCpgnStMfwqxBbbdmKncGLy6DKN18qZVuH4"
+  );
   const [mint] = PublicKey.findProgramAddressSync(
     [Buffer.from("mint"), randomKey.toBuffer()],
     program.programId
@@ -41,6 +47,15 @@ describe("stable-social-token", () => {
     authority,
     true
   );
+
+  it("Set Protocol Fee", async () => {
+    const txSig = await program.methods
+      .setProtocolFee(500)
+      .accounts({ payer: wallet.publicKey })
+      .rpc({ skipPreflight: true });
+
+    console.log(`Transaction Signature: ${txSig}`);
+  });
 
   it("Create Mint!", async () => {
     const mintLen = getMintLen([
@@ -153,6 +168,44 @@ describe("stable-social-token", () => {
     console.log(`Transaction Signature: ${txSig}`);
   });
 
+  it("Transfer Mint!", async () => {
+    const source = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+      false,
+      "confirmed",
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+    const destination = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      mint,
+      recipient,
+      false,
+      "confirmed",
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    const txSig = await transferChecked(
+      connection,
+      wallet.payer,
+      source.address,
+      mint,
+      destination.address,
+      wallet.publicKey,
+      0.1 * 10 ** 6,
+      6,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+    console.log(`Transaction Signature: ${txSig}`);
+  });
+
   it("Redeem Stablecoin!", async () => {
     const payerStableTokenAccount = getAssociatedTokenAddressSync(
       USDC,
@@ -169,7 +222,7 @@ describe("stable-social-token", () => {
       wallet.publicKey
     );
     const ix = await program.methods
-      .redeemStablecoin(new anchor.BN(1 * (9995 / 10000) * 10 ** 6))
+      .redeemStablecoin(new anchor.BN((1 * (9995 / 10000) - 0.1) * 10 ** 6))
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
@@ -188,6 +241,70 @@ describe("stable-social-token", () => {
       [wallet.payer],
       { skipPreflight: true }
     );
+    console.log(`Transaction Signature: ${txSig}`);
+  });
+
+  it("Harvest fee to mint", async () => {
+    const destination = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      mint,
+      recipient,
+      false,
+      "confirmed",
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    const txSig = await harvestWithheldTokensToMint(
+      connection,
+      wallet.payer, // Transaction fee payer
+      mint, // Mint Account address
+      [destination.address], // Source Token Accounts for fee harvesting
+      undefined, // Confirmation options
+      TOKEN_2022_PROGRAM_ID // Token Extension Program ID
+    );
+    console.log(`Transaction Signature: ${txSig}`);
+  });
+
+  it("Withdraw to fee collector", async () => {
+    const [protocolConfig] = PublicKey.findProgramAddressSync(
+      [Buffer.from("config"), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    const protocolConfigMintTokenAccount =
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        wallet.payer,
+        mint,
+        protocolConfig,
+        true,
+        "confirmed",
+        undefined,
+        TOKEN_2022_PROGRAM_ID
+      );
+
+    const feeCollectorMintTokenAccount =
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        wallet.payer,
+        mint,
+        wallet.publicKey,
+        true,
+        "confirmed",
+        undefined,
+        TOKEN_2022_PROGRAM_ID
+      );
+    const txSig = await program.methods
+      .withdrawTokensFromMint()
+      .accounts({
+        payer: wallet.publicKey,
+        mint: mint,
+        feeCollectorMintTokenAccount: feeCollectorMintTokenAccount.address,
+        protocolConfigMintTokenAccount: protocolConfigMintTokenAccount.address,
+      })
+      .rpc({ skipPreflight: true });
+
     console.log(`Transaction Signature: ${txSig}`);
   });
 });

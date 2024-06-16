@@ -62,6 +62,7 @@ pub struct IssueMintCtx<'info> {
     )]
     pub authority: AccountLoader<'info, Authority>,
     #[account(
+        mut,
         token::mint = stable_coin,
         token::authority = fee_collector,
         token::token_program = token_program,

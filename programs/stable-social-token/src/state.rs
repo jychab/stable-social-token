@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use solana_program::pubkey;
 
 #[cfg(not(feature = "devnet"))]
 pub mod stable_coin {
@@ -23,3 +24,14 @@ pub struct Authority {
     pub update_metadata_authority: Pubkey,
 }
 pub const AUTHORITY_SPACE: usize = 8 + std::mem::size_of::<Authority>();
+
+#[account]
+pub struct ProtocolFeeConfig {
+    pub bump: u8,
+    pub fee_basis_pts: u16,
+}
+
+pub const PROTOCOL_FEE_CONFIG_SPACE: usize = 8 + std::mem::size_of::<ProtocolFeeConfig>();
+
+// multi-sig wallet
+pub const PROTOCOL_WALLET: Pubkey = pubkey!("FjsF2dg1njhxL9Cv1VezzHropmUDTWRQpcWLANv3jVR2");
