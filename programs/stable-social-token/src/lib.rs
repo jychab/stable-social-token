@@ -5,6 +5,7 @@ declare_id!("APP6sVJA6zKhnxVfTdEvkvHN9xGUNYxYZy3nQ6DePEAX");
 mod error;
 mod instructions;
 mod state;
+mod utils;
 
 use instructions::*;
 #[program]

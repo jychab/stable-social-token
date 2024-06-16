@@ -2,15 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::Token,
-    token_2022::{
-        spl_token_2022::{
-            extension::{
-                transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions,
-            },
-            state,
-        },
-        Token2022,
-    },
+    token_2022::Token2022,
     token_interface::{
         mint_to, transfer_checked, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
     },
@@ -19,6 +11,7 @@ use anchor_spl::{
 use crate::{
     error::CustomError,
     state::{stable_coin, Authority},
+    utils::get_transfer_fee,
 };
 #[derive(Accounts)]
 pub struct IssueMintCtx<'info> {
@@ -93,18 +86,7 @@ pub fn issue_mint_handler<'info>(
         CustomError::InsufficientAmount
     );
 
-    let mint_info = ctx.accounts.mint.to_account_info();
-    let mint_data = mint_info.data.borrow();
-    let mint = StateWithExtensions::<state::Mint>::unpack(&mint_data)?;
-    let fee: u64 = if let Ok(transfer_fee_config) = mint.get_extension::<TransferFeeConfig>() {
-        let fee = transfer_fee_config
-            .calculate_epoch_fee(Clock::get()?.epoch, amount)
-            .ok_or(ProgramError::InvalidArgument)?;
-        fee
-    } else {
-        0
-    };
-    drop(mint_data);
+    let fee = get_transfer_fee(&ctx.accounts.mint.to_account_info(), amount)?;
 
     let mint_key = ctx.accounts.mint.key();
     let seeds = &[

@@ -1,15 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    token_2022::{
-        spl_token_2022::{
-            extension::{
-                transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions,
-            },
-            onchain::invoke_transfer_checked,
-            state,
-        },
-        Token2022,
-    },
+    token_2022::{spl_token_2022::onchain::invoke_transfer_checked, Token2022},
     token_interface::{
         withdraw_withheld_tokens_from_mint, Mint, TokenAccount, TokenInterface,
         WithdrawWithheldTokensFromMint,
@@ -19,6 +10,7 @@ use anchor_spl::{
 use crate::{
     error::CustomError,
     state::{Authority, ProtocolFeeConfig, PROTOCOL_WALLET},
+    utils::{calculate_fee, get_withheld_fee},
 };
 #[derive(Accounts)]
 pub struct WithdrawWithheldTokensFromMintCtx<'info> {
@@ -60,45 +52,15 @@ pub struct WithdrawWithheldTokensFromMintCtx<'info> {
     pub system_program: Program<'info, System>,
 }
 
-fn ceil_div(numerator: u128, denominator: u128) -> Option<u128> {
-    numerator
-        .checked_add(denominator)?
-        .checked_sub(1)?
-        .checked_div(denominator)
-}
-
-fn calculate_fee(amount: u64, transfer_fee_basis_pts: u16) -> u64 {
-    let transfer_fee_basis_points = u16::from(transfer_fee_basis_pts) as u128;
-    if transfer_fee_basis_points == 0 || amount == 0 {
-        0
-    } else {
-        let numerator = (amount as u128)
-            .checked_mul(transfer_fee_basis_points)
-            .unwrap();
-        let raw_fee = ceil_div(numerator, 10_000)
-            .unwrap()
-            .try_into() // guaranteed to be okay
-            .ok()
-            .unwrap();
-        raw_fee
-    }
-}
-
 pub fn withdraw_tokens_from_mint_handler<'info>(
     ctx: Context<'_, '_, '_, 'info, WithdrawWithheldTokensFromMintCtx<'info>>,
 ) -> Result<()> {
-    let mint_info = ctx.accounts.mint.to_account_info();
-    let mint_data = mint_info.data.borrow();
-    let mint = StateWithExtensions::<state::Mint>::unpack(&mint_data)?;
-    let extension = mint.get_extension::<TransferFeeConfig>()?;
-
-    let withheld_amount = u64::from(extension.withheld_amount);
+    let withheld_amount = get_withheld_fee(&ctx.accounts.mint.to_account_info())?;
     let fee = calculate_fee(
         withheld_amount,
         ctx.accounts.protocol_fee_config.fee_basis_pts,
     );
     let amount_after_fee = withheld_amount.saturating_sub(fee);
-    drop(mint_data);
 
     let mint_key = ctx.accounts.mint.key();
     let seeds = &[
