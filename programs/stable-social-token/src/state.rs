@@ -34,4 +34,4 @@ pub struct ProtocolFeeConfig {
 pub const PROTOCOL_FEE_CONFIG_SPACE: usize = 8 + std::mem::size_of::<ProtocolFeeConfig>();
 
 // multi-sig wallet
-pub const PROTOCOL_WALLET: Pubkey = pubkey!("FjsF2dg1njhxL9Cv1VezzHropmUDTWRQpcWLANv3jVR2");
+pub const PROTOCOL_WALLET: Pubkey = pubkey!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");

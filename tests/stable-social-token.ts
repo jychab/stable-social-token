@@ -5,7 +5,6 @@ import {
   LENGTH_SIZE,
   TOKEN_2022_PROGRAM_ID,
   TYPE_SIZE,
-  createTransferCheckedWithTransferHookInstruction,
   getAssociatedTokenAddressSync,
   getMintLen,
   getOrCreateAssociatedTokenAccount,
@@ -47,6 +46,12 @@ describe("stable-social-token", () => {
     USDC,
     authority,
     true
+  );
+  const authorityMintTokenAccount = getAssociatedTokenAddressSync(
+    mint,
+    authority,
+    true,
+    TOKEN_2022_PROGRAM_ID
   );
 
   it("Set Protocol Fee", async () => {
@@ -267,20 +272,13 @@ describe("stable-social-token", () => {
   });
 
   it("Withdraw to fee collector", async () => {
-    const [protocolConfig] = PublicKey.findProgramAddressSync(
-      [Buffer.from("config"), wallet.publicKey.toBuffer()],
-      program.programId
-    );
-    const protocolConfigMintTokenAccount =
+    const protocolStableCoinTokenAccount =
       await getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
-        mint,
-        protocolConfig,
-        true,
-        "confirmed",
-        undefined,
-        TOKEN_2022_PROGRAM_ID
+        USDC,
+        wallet.publicKey,
+        false
       );
 
     const feeCollectorMintTokenAccount =
@@ -294,28 +292,21 @@ describe("stable-social-token", () => {
         undefined,
         TOKEN_2022_PROGRAM_ID
       );
-    const ix = await createTransferCheckedWithTransferHookInstruction(
-      connection,
-      protocolConfigMintTokenAccount.address,
-      mint,
-      feeCollectorMintTokenAccount.address,
-      protocolConfig,
-      BigInt(0),
-      6,
-      undefined,
-      undefined,
-      TOKEN_2022_PROGRAM_ID
+    const feeCollectorStableCoinTokenAccount = getAssociatedTokenAddressSync(
+      USDC,
+      wallet.publicKey
     );
 
     const txSig = await program.methods
-      .withdrawTokensFromMint()
+      .withdrawFees()
       .accounts({
         payer: wallet.publicKey,
         mint: mint,
-        feeCollectorMintTokenAccount: feeCollectorMintTokenAccount.address,
-        protocolConfigMintTokenAccount: protocolConfigMintTokenAccount.address,
+        feeCollectorStableCoinTokenAccount: feeCollectorStableCoinTokenAccount,
+        protocolStableCoinTokenAccount: protocolStableCoinTokenAccount.address,
+        authorityMintTokenAccount: authorityMintTokenAccount,
+        authorityStableCoinTokenAccount: authorityStableTokenAccount,
       })
-      .remainingAccounts(ix.keys.length > 4 ? ix.keys.slice(4) : [])
       .rpc({ skipPreflight: true });
 
     console.log(`Transaction Signature: ${txSig}`);

@@ -50,9 +50,9 @@ pub mod stable_social_token {
         instructions::redeem_stablecoin::redeem_stablecoin_handler(ctx, amount)
     }
 
-    pub fn withdraw_tokens_from_mint<'info>(
-        ctx: Context<'_, '_, '_, 'info, WithdrawWithheldTokensFromMintCtx<'info>>,
+    pub fn withdraw_fees<'info>(
+        ctx: Context<'_, '_, '_, 'info, WithdrawFeesCtx<'info>>,
     ) -> Result<()> {
-        instructions::withdraw_withheld_tokens_from_mint::withdraw_tokens_from_mint_handler(ctx)
+        instructions::withdraw_fees::withdraw_fees_handler(ctx)
     }
 }
