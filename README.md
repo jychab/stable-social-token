@@ -1,8 +1,8 @@
 ## Motivation
-The current landscape of memecoins is marked by extreme volatility, making it difficult to use them to price goods and services reliably. Businesses accepting crypto tokens as payment face the risk of fluctuating values, potentially incurring losses when converting them to cover costs. This instability undermines the practicality of using such tokens for consistent and dependable transactions.
+The current landscape of memecoins is characterized by extreme volatility, making it challenging to price goods and services reliably. Businesses accepting these crypto tokens as payment risk significant value fluctuations, potentially incurring losses when converting them to cover costs. This instability undermines the practicality of using such tokens for consistent and dependable transactions. Furthermore, stablecoins like USDC do not offer significant advantages over traditional, well-established payment methods. To address these issues, we have introduced the concept of a brandable stablecoin that allows creators to capture transfer fees, providing a more stable and profitable payment solution.
 
 ## Idea
-To address this issue, we propose a smart contract that ensures that new tokens can only be minted by locking an equivalent value of USDC (a stablecoin) in a secure vault. The backing by USDC stabilizes the token's value, ensuring it remains approximately equal to the value of the locked stablecoins. 
+We propose a smart contract that ensures that new tokens can only be minted by locking an equivalent value of USDC (a stablecoin) in a secure vault. The backing by USDC stabilizes the token's value, ensuring it remains approximately equal to the value of the locked stablecoins. 
 
 ## Features
 
