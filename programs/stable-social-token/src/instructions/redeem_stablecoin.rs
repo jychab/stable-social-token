@@ -48,6 +48,7 @@ pub struct RedeemStableCoinCtx<'info> {
     )]
     pub authority_stable_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
+        mut,
         seeds = [b"authority", mint.key().as_ref()],
         bump = authority.load()?.bump,
     )]
@@ -93,6 +94,7 @@ pub fn redeem_stablecoin_handler<'info>(
     if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_stable_coin_token_account
     {
         if fee > 0 {
+            ctx.accounts.authority.load_mut()?.fees_collected += fee;
             transfer_checked(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),

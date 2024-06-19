@@ -18,7 +18,6 @@ use crate::{
 pub struct WithdrawFeesCtx<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-
     #[account(
         mut,
         constraint = mint.key() == authority.load()?.mint @CustomError::IncorrectMint,
@@ -30,6 +29,7 @@ pub struct WithdrawFeesCtx<'info> {
     pub stable_coin: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
+        mut,
         seeds = [b"authority", mint.key().as_ref()],
         bump = authority.load()?.bump,
     )]
@@ -173,6 +173,7 @@ pub fn withdraw_fees_handler<'info>(
         amount_after_fee,
         ctx.accounts.stable_coin.decimals,
     )?;
+    ctx.accounts.authority.load_mut()?.fees_collected += amount_after_fee;
 
     Ok(())
 }

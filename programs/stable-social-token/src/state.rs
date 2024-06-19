@@ -14,9 +14,10 @@ pub mod stable_coin {
 
     pub const USDC: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 }
-
 #[account(zero_copy)]
 pub struct Authority {
+    pub fees_collected: u64,
+    pub padding: [u8; 7],
     pub bump: u8,
     pub stable_coin: Pubkey,
     pub mint: Pubkey,

@@ -310,5 +310,7 @@ describe("stable-social-token", () => {
       .rpc({ skipPreflight: true });
 
     console.log(`Transaction Signature: ${txSig}`);
+
+    console.log(await program.account.authority.fetch(authority));
   });
 });

@@ -50,6 +50,7 @@ pub struct IssueMintCtx<'info> {
     )]
     pub authority_stable_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
+        mut,
         seeds = [b"authority", mint.key().as_ref()],
         bump = authority.load()?.bump,
     )]
@@ -96,6 +97,7 @@ pub fn issue_mint_handler<'info>(
     {
         if fee > 0 {
             let fee_collector_info = fee_collector_token_account.to_account_info();
+            ctx.accounts.authority.load_mut()?.fees_collected += fee;
             transfer_checked(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
