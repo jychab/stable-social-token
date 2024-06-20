@@ -14,7 +14,7 @@ This model offers a more stable and reliable crypto token for creators, allowing
 
 ## DEMO
 
-[CandyWrapper](www.candywrapper.xyz)
+[CandyWrapper](https://www.candywrapper.xyz)
 
 
 
