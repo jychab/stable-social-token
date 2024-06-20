@@ -12,6 +12,10 @@ We propose a smart contract that ensures that new tokens can only be minted by l
 
 This model offers a more stable and reliable crypto token for creators, allowing them to confidently price their goods and services without the fear of losing value due to market volatility. The ability to earn transfer fees also provides creators with an additional revenue stream, incentivizing the use of their tokens in commerce.
 
+## DEMO
+
+[CandyWrapper](www.candywrapper.xyz)
+
 
 
 
