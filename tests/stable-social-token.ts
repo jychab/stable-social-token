@@ -73,12 +73,11 @@ describe("stable-social-token", () => {
       .createMint({
         randomKey: randomKey,
         size: mintLen,
-        permanentDelegate: null,
+        admin: wallet.publicKey,
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
           feeCollector: wallet.publicKey,
-          transferFeeConfigAuthority: wallet.publicKey,
         },
         transferHookArgs: null,
       })

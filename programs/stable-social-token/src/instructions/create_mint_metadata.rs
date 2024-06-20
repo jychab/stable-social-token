@@ -10,7 +10,7 @@ use crate::{error::CustomError, state::Authority};
 pub struct CreateMintMetadataCtx<'info> {
     #[account(
         mut,
-        constraint = payer.key() == authority.load()?.update_metadata_authority @CustomError::IncorrectUpdateAuthority,
+        constraint = payer.key() == authority.load()?.admin @CustomError::IncorrectUpdateAuthority,
     )]
     pub payer: Signer<'info>,
     #[account(

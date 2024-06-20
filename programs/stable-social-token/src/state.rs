@@ -22,7 +22,7 @@ pub struct Authority {
     pub stable_coin: Pubkey,
     pub mint: Pubkey,
     pub fee_collector: Pubkey,
-    pub update_metadata_authority: Pubkey,
+    pub admin: Pubkey, // have the ability to change transfer fees, change transfer hook program Id & change metadata
 }
 pub const AUTHORITY_SPACE: usize = 8 + std::mem::size_of::<Authority>();
 
