@@ -43,11 +43,11 @@ pub mod stable_social_token {
         instructions::issue_mint::issue_mint_handler(ctx, amount)
     }
 
-    pub fn redeem_stablecoin<'info>(
-        ctx: Context<'_, '_, '_, 'info, RedeemStableCoinCtx<'info>>,
+    pub fn redeem_basecoin<'info>(
+        ctx: Context<'_, '_, '_, 'info, RedeemBaseCoinCtx<'info>>,
         amount: u64,
     ) -> Result<()> {
-        instructions::redeem_stablecoin::redeem_stablecoin_handler(ctx, amount)
+        instructions::redeem_basecoin::redeem_basecoin_handler(ctx, amount)
     }
 
     pub fn withdraw_fees<'info>(

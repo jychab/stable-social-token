@@ -11,7 +11,7 @@ use anchor_spl::{
 
 use crate::{
     error::CustomError,
-    state::{stable_coin, Authority, ProtocolFeeConfig, PROTOCOL_WALLET},
+    state::{Authority, ProtocolFeeConfig, PROTOCOL_WALLET},
     utils::{calculate_fee, get_withheld_fee},
 };
 #[derive(Accounts)]
@@ -24,9 +24,9 @@ pub struct WithdrawFeesCtx<'info> {
     )]
     pub mint: InterfaceAccount<'info, Mint>,
     #[account(
-        address = stable_coin::USDC @CustomError::UnauthorizedStableCoin,
+        constraint = base_coin.key() == authority.load()?.base_coin @CustomError::UnauthorizedBaseCoin,
     )]
-    pub stable_coin: Box<InterfaceAccount<'info, Mint>>,
+    pub base_coin: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -56,25 +56,25 @@ pub struct WithdrawFeesCtx<'info> {
 
     #[account(
         mut,
-        token::mint = stable_coin,
+        token::mint = base_coin,
         token::authority = authority,
         token::token_program = token_program,
     )]
-    pub authority_stable_coin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub authority_base_coin_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        token::mint = stable_coin,
+        token::mint = base_coin,
         token::authority = protocol_wallet,
         token::token_program = token_program,
     )]
-    pub protocol_stable_coin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub protocol_base_coin_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        token::mint = stable_coin,
+        token::mint = base_coin,
         token::token_program = token_program,
-        constraint = fee_collector_stable_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
+        constraint = fee_collector_base_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
-    pub fee_collector_stable_coin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_collector_base_coin_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         address = Token2022::id()
@@ -92,11 +92,6 @@ pub fn withdraw_fees_handler<'info>(
     ctx: Context<'_, '_, '_, 'info, WithdrawFeesCtx<'info>>,
 ) -> Result<()> {
     let withheld_amount = get_withheld_fee(&ctx.accounts.mint.to_account_info())?;
-    let fee = calculate_fee(
-        withheld_amount,
-        ctx.accounts.protocol_fee_config.fee_basis_pts,
-    );
-    let amount_after_fee = withheld_amount.saturating_sub(fee);
 
     let mint_key = ctx.accounts.mint.key();
     let seeds = &[
@@ -132,25 +127,34 @@ pub fn withdraw_fees_handler<'info>(
         withheld_amount,
     )?;
 
+    let mint_to_base_ratio = ctx.accounts.authority.load()?.mint_to_base_ratio;
+    let base_amount: u64 = u128::from(withheld_amount)
+        .checked_div(mint_to_base_ratio.into())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    let fee = calculate_fee(base_amount, ctx.accounts.protocol_fee_config.fee_basis_pts);
+    let amount_after_fee = base_amount.saturating_sub(fee);
+
     transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             TransferChecked {
                 from: ctx
                     .accounts
-                    .authority_stable_coin_token_account
+                    .authority_base_coin_token_account
                     .to_account_info(),
-                mint: ctx.accounts.stable_coin.to_account_info(),
+                mint: ctx.accounts.base_coin.to_account_info(),
                 to: ctx
                     .accounts
-                    .protocol_stable_coin_token_account
+                    .protocol_base_coin_token_account
                     .to_account_info(),
                 authority: ctx.accounts.authority.to_account_info(),
             },
         )
         .with_signer(signer),
         fee,
-        ctx.accounts.stable_coin.decimals,
+        ctx.accounts.base_coin.decimals,
     )?;
 
     transfer_checked(
@@ -159,19 +163,19 @@ pub fn withdraw_fees_handler<'info>(
             TransferChecked {
                 from: ctx
                     .accounts
-                    .authority_stable_coin_token_account
+                    .authority_base_coin_token_account
                     .to_account_info(),
-                mint: ctx.accounts.stable_coin.to_account_info(),
+                mint: ctx.accounts.base_coin.to_account_info(),
                 to: ctx
                     .accounts
-                    .fee_collector_stable_coin_token_account
+                    .fee_collector_base_coin_token_account
                     .to_account_info(),
                 authority: ctx.accounts.authority.to_account_info(),
             },
         )
         .with_signer(signer),
         amount_after_fee,
-        ctx.accounts.stable_coin.decimals,
+        ctx.accounts.base_coin.decimals,
     )?;
     ctx.accounts.authority.load_mut()?.fees_collected += amount_after_fee;
 

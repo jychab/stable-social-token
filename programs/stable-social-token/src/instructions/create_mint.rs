@@ -10,7 +10,7 @@ use anchor_spl::{
 
 use crate::{
     error::CustomError,
-    state::{stable_coin, Authority, AUTHORITY_SPACE},
+    state::{Authority, AUTHORITY_SPACE},
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -18,6 +18,8 @@ pub struct CreateMintArgs {
     pub random_key: Pubkey,
     pub size: u16,
     pub admin: Pubkey,
+    pub base_coin: Pubkey,
+    pub mint_to_base_ratio: u16,
     pub transfer_fee_args: Option<TransferFeeArgs>,
     pub transfer_hook_args: Option<TransferHookArgs>,
 }
@@ -58,9 +60,9 @@ pub struct CreateMintCtx<'info> {
     )]
     pub authority: AccountLoader<'info, Authority>,
     #[account(
-        address = stable_coin::USDC @CustomError::UnauthorizedStableCoin,
+        constraint = base_coin.key() == args.base_coin @CustomError::UnauthorizedBaseCoin,
     )]
-    pub stable_coin: InterfaceAccount<'info, Mint>,
+    pub base_coin: InterfaceAccount<'info, Mint>,
     #[account(
         address = Token2022::id() @CustomError::IncorrectTokenProgram,
     )]
@@ -72,9 +74,10 @@ pub struct CreateMintCtx<'info> {
 pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) -> Result<()> {
     let authority = &mut ctx.accounts.authority.load_init()?;
     authority.bump = ctx.bumps.authority;
-    authority.stable_coin = ctx.accounts.stable_coin.key();
+    authority.base_coin = args.base_coin;
     authority.mint = ctx.accounts.mint.key();
     authority.admin = args.admin;
+    authority.mint_to_base_ratio = args.mint_to_base_ratio;
 
     if let Some(transfer_fee_args) = args.transfer_fee_args {
         authority.fee_collector = transfer_fee_args.fee_collector;
@@ -131,7 +134,7 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
                 rent: ctx.accounts.rent.to_account_info(),
             },
         ),
-        ctx.accounts.stable_coin.decimals,
+        ctx.accounts.base_coin.decimals,
         &ctx.accounts.authority.key(),
         None,
     )?;

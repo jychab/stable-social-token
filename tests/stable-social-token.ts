@@ -42,7 +42,7 @@ describe("stable-social-token", () => {
     program.programId
   );
   const USDC = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
-  const authorityStableTokenAccount = getAssociatedTokenAddressSync(
+  const authorityBaseTokenAccount = getAssociatedTokenAddressSync(
     USDC,
     authority,
     true
@@ -74,6 +74,8 @@ describe("stable-social-token", () => {
         randomKey: randomKey,
         size: mintLen,
         admin: wallet.publicKey,
+        mintToBaseRatio: 1,
+        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
@@ -82,6 +84,7 @@ describe("stable-social-token", () => {
         transferHookArgs: null,
       })
       .accounts({
+        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
         payer: wallet.publicKey,
       })
       .instruction();
@@ -135,7 +138,7 @@ describe("stable-social-token", () => {
   });
 
   it("Issue Mint!", async () => {
-    const payerStableTokenAccount = getAssociatedTokenAddressSync(
+    const payerBaseTokenAccount = getAssociatedTokenAddressSync(
       USDC,
       wallet.publicKey,
       false
@@ -146,7 +149,7 @@ describe("stable-social-token", () => {
       true,
       TOKEN_2022_PROGRAM_ID
     );
-    const feeCollectorStableCoinTokenAccount = getAssociatedTokenAddressSync(
+    const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
       USDC,
       wallet.publicKey
     );
@@ -155,10 +158,11 @@ describe("stable-social-token", () => {
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
-        authorityStableCoinTokenAccount: authorityStableTokenAccount,
+        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
-        payerStableCoinTokenAccount: payerStableTokenAccount,
-        feeCollectorStableCoinTokenAccount: feeCollectorStableCoinTokenAccount,
+        payerBaseCoinTokenAccount: payerBaseTokenAccount,
+        feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
       })
       .instruction();
 
@@ -210,8 +214,8 @@ describe("stable-social-token", () => {
     console.log(`Transaction Signature: ${txSig}`);
   });
 
-  it("Redeem Stablecoin!", async () => {
-    const payerStableTokenAccount = getAssociatedTokenAddressSync(
+  it("Redeem Basecoin!", async () => {
+    const payerBaseTokenAccount = getAssociatedTokenAddressSync(
       USDC,
       wallet.publicKey
     );
@@ -221,19 +225,20 @@ describe("stable-social-token", () => {
       true,
       TOKEN_2022_PROGRAM_ID
     );
-    const feeCollectorStableCoinTokenAccount = getAssociatedTokenAddressSync(
+    const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
       USDC,
       wallet.publicKey
     );
     const ix = await program.methods
-      .redeemStablecoin(new anchor.BN((1 * (9995 / 10000) - 0.1) * 10 ** 6))
+      .redeemBasecoin(new anchor.BN((1 * (9995 / 10000) - 0.1) * 10 ** 6))
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
-        authorityStableCoinTokenAccount: authorityStableTokenAccount,
+        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
-        payerStableCoinTokenAccount: payerStableTokenAccount,
-        feeCollectorStableCoinTokenAccount: feeCollectorStableCoinTokenAccount,
+        payerBaseCoinTokenAccount: payerBaseTokenAccount,
+        feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
       })
       .instruction();
 
@@ -271,7 +276,7 @@ describe("stable-social-token", () => {
   });
 
   it("Withdraw to fee collector", async () => {
-    const protocolStableCoinTokenAccount =
+    const protocolBaseCoinTokenAccount =
       await getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
@@ -291,7 +296,7 @@ describe("stable-social-token", () => {
         undefined,
         TOKEN_2022_PROGRAM_ID
       );
-    const feeCollectorStableCoinTokenAccount = getAssociatedTokenAddressSync(
+    const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
       USDC,
       wallet.publicKey
     );
@@ -301,10 +306,11 @@ describe("stable-social-token", () => {
       .accounts({
         payer: wallet.publicKey,
         mint: mint,
-        feeCollectorStableCoinTokenAccount: feeCollectorStableCoinTokenAccount,
-        protocolStableCoinTokenAccount: protocolStableCoinTokenAccount.address,
+        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
+        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
         authorityMintTokenAccount: authorityMintTokenAccount,
-        authorityStableCoinTokenAccount: authorityStableTokenAccount,
+        authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
       })
       .rpc({ skipPreflight: true });
 

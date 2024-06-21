@@ -7,6 +7,6 @@ pub enum CustomError {
     IncorrectMint,
     IncorrectFeeCollector,
     IncorrectTokenProgram,
-    UnauthorizedStableCoin,
+    UnauthorizedBaseCoin,
     InsufficientAmount,
 }

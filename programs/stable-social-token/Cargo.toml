@@ -9,8 +9,7 @@ crate-type = ["cdylib", "lib"]
 name = "stable_social_token"
 
 [features]
-default = ["devnet"]
-devnet = []
+default = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

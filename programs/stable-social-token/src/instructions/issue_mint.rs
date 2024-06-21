@@ -8,11 +8,7 @@ use anchor_spl::{
     },
 };
 
-use crate::{
-    error::CustomError,
-    state::{stable_coin, Authority},
-    utils::get_transfer_fee,
-};
+use crate::{error::CustomError, state::Authority, utils::get_transfer_fee};
 #[derive(Accounts)]
 pub struct IssueMintCtx<'info> {
     #[account(mut)]
@@ -27,28 +23,28 @@ pub struct IssueMintCtx<'info> {
     pub payer_mint_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
-        token::mint = stable_coin,
+        token::mint = base_coin,
         token::authority = payer,
         token::token_program = token_program,
     )]
-    pub payer_stable_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub payer_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         constraint = mint.key() == authority.load()?.mint @CustomError::IncorrectMint,
     )]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
-        address = stable_coin::USDC @CustomError::UnauthorizedStableCoin,
+        constraint = base_coin.key() == authority.load()?.base_coin @CustomError::UnauthorizedBaseCoin,
     )]
-    pub stable_coin: Box<InterfaceAccount<'info, Mint>>,
+    pub base_coin: Box<InterfaceAccount<'info, Mint>>,
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::mint = stable_coin,
+        associated_token::mint = base_coin,
         associated_token::authority = authority,
         associated_token::token_program = token_program
     )]
-    pub authority_stable_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub authority_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [b"authority", mint.key().as_ref()],
@@ -57,11 +53,11 @@ pub struct IssueMintCtx<'info> {
     pub authority: AccountLoader<'info, Authority>,
     #[account(
         mut,
-        token::mint = stable_coin,
+        token::mint = base_coin,
         token::token_program = token_program,
-        constraint = fee_collector_stable_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
+        constraint = fee_collector_base_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
-    pub fee_collector_stable_coin_token_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    pub fee_collector_base_coin_token_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
     #[account(
         address = Token2022::id()
     )]
@@ -79,7 +75,7 @@ pub fn issue_mint_handler<'info>(
     amount: u64,
 ) -> Result<()> {
     require!(
-        ctx.accounts.payer_stable_coin_token_account.amount >= amount,
+        ctx.accounts.payer_base_coin_token_account.amount >= amount,
         CustomError::InsufficientAmount
     );
 
@@ -93,8 +89,7 @@ pub fn issue_mint_handler<'info>(
     ];
     let signer = &[&seeds[..]];
 
-    if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_stable_coin_token_account
-    {
+    if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_base_coin_token_account {
         if fee > 0 {
             let fee_collector_info = fee_collector_token_account.to_account_info();
             ctx.accounts.authority.load_mut()?.fees_collected += fee;
@@ -102,17 +97,14 @@ pub fn issue_mint_handler<'info>(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
                     TransferChecked {
-                        from: ctx
-                            .accounts
-                            .payer_stable_coin_token_account
-                            .to_account_info(),
-                        mint: ctx.accounts.stable_coin.to_account_info(),
+                        from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
+                        mint: ctx.accounts.base_coin.to_account_info(),
                         to: fee_collector_info.to_account_info(),
                         authority: ctx.accounts.payer.to_account_info(),
                     },
                 ),
                 fee,
-                ctx.accounts.stable_coin.decimals,
+                ctx.accounts.base_coin.decimals,
             )?;
         }
     } else {
@@ -123,22 +115,20 @@ pub fn issue_mint_handler<'info>(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             TransferChecked {
-                from: ctx
-                    .accounts
-                    .payer_stable_coin_token_account
-                    .to_account_info(),
-                mint: ctx.accounts.stable_coin.to_account_info(),
+                from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
+                mint: ctx.accounts.base_coin.to_account_info(),
                 to: ctx
                     .accounts
-                    .authority_stable_coin_token_account
+                    .authority_base_coin_token_account
                     .to_account_info(),
                 authority: ctx.accounts.payer.to_account_info(),
             },
         ),
         amount.saturating_sub(fee),
-        ctx.accounts.stable_coin.decimals,
+        ctx.accounts.base_coin.decimals,
     )?;
 
+    let mint_to_base_ratio = ctx.accounts.authority.load()?.mint_to_base_ratio;
     mint_to(
         CpiContext::new(
             ctx.accounts.token_program_2022.to_account_info(),
@@ -149,7 +139,11 @@ pub fn issue_mint_handler<'info>(
             },
         )
         .with_signer(signer),
-        amount.saturating_sub(fee),
+        u128::from(amount.saturating_sub(fee))
+            .checked_mul(mint_to_base_ratio.into())
+            .unwrap()
+            .try_into()
+            .unwrap(),
     )?;
 
     Ok(())
