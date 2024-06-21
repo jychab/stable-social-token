@@ -22,7 +22,7 @@ pub struct WithdrawFeesCtx<'info> {
         mut,
         constraint = mint.key() == authority.load()?.mint @CustomError::IncorrectMint,
     )]
-    pub mint: InterfaceAccount<'info, Mint>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
         constraint = base_coin.key() == authority.load()?.base_coin @CustomError::UnauthorizedBaseCoin,
     )]
@@ -38,7 +38,7 @@ pub struct WithdrawFeesCtx<'info> {
         seeds = [b"config", PROTOCOL_WALLET.as_ref()],
         bump = protocol_fee_config.bump,
     )]
-    pub protocol_fee_config: Account<'info, ProtocolFeeConfig>,
+    pub protocol_fee_config: Box<Account<'info, ProtocolFeeConfig>>,
     #[account(
         address = PROTOCOL_WALLET
     )]
@@ -52,7 +52,7 @@ pub struct WithdrawFeesCtx<'info> {
         associated_token::authority = authority,
         associated_token::token_program = token_program_2022,
     )]
-    pub authority_mint_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub authority_mint_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -60,21 +60,22 @@ pub struct WithdrawFeesCtx<'info> {
         token::authority = authority,
         token::token_program = token_program,
     )]
-    pub authority_base_coin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub authority_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
-        mut,
-        token::mint = base_coin,
-        token::authority = protocol_wallet,
-        token::token_program = token_program,
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = base_coin,
+        associated_token::authority = protocol_wallet,
+        associated_token::token_program = token_program,
     )]
-    pub protocol_base_coin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub protocol_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         token::mint = base_coin,
         token::token_program = token_program,
         constraint = fee_collector_base_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
-    pub fee_collector_base_coin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub fee_collector_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         address = Token2022::id()

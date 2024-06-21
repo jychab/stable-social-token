@@ -285,23 +285,12 @@ describe("stable-social-token", () => {
         false
       );
 
-    const feeCollectorMintTokenAccount =
-      await getOrCreateAssociatedTokenAccount(
-        connection,
-        wallet.payer,
-        mint,
-        wallet.publicKey,
-        true,
-        "confirmed",
-        undefined,
-        TOKEN_2022_PROGRAM_ID
-      );
     const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
       USDC,
       wallet.publicKey
     );
 
-    const txSig = await program.methods
+    const ix = await program.methods
       .withdrawFees()
       .accounts({
         payer: wallet.publicKey,
@@ -312,8 +301,14 @@ describe("stable-social-token", () => {
         authorityMintTokenAccount: authorityMintTokenAccount,
         authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
       })
-      .rpc({ skipPreflight: true });
-
+      .instruction();
+    const transaction = new Transaction().add(ix);
+    const txSig = await sendAndConfirmTransaction(
+      provider.connection,
+      transaction,
+      [wallet.payer],
+      { skipPreflight: true }
+    );
     console.log(`Transaction Signature: ${txSig}`);
 
     console.log(await program.account.authority.fetch(authority));
