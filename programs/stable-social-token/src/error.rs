@@ -9,4 +9,5 @@ pub enum CustomError {
     IncorrectTokenProgram,
     UnauthorizedBaseCoin,
     InsufficientAmount,
+    MintRatioCannotBeZero,
 }

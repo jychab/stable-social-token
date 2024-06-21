@@ -79,6 +79,11 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
     authority.admin = args.admin;
     authority.mint_to_base_ratio = args.mint_to_base_ratio;
 
+    require!(
+        args.mint_to_base_ratio > 0,
+        CustomError::MintRatioCannotBeZero
+    );
+
     if let Some(transfer_fee_args) = args.transfer_fee_args {
         authority.fee_collector = transfer_fee_args.fee_collector;
         // initialize transfer fee

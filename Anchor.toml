@@ -5,13 +5,13 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-stable_social_token = "APP6sVJA6zKhnxVfTdEvkvHN9xGUNYxYZy3nQ6DePEAX"
+stable_social_token = "8EUZHN7aTsMgxaHvxv2Zbfgbf4faKT7mVk3QXe6WH5HA"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "https://devnet.helius-rpc.com/?api-key=67cc99fc-f14e-499c-9507-48127506901f"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

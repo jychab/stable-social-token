@@ -129,6 +129,7 @@ pub fn issue_mint_handler<'info>(
     )?;
 
     let mint_to_base_ratio = ctx.accounts.authority.load()?.mint_to_base_ratio;
+
     mint_to(
         CpiContext::new(
             ctx.accounts.token_program_2022.to_account_info(),
