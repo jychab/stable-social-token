@@ -33,18 +33,17 @@ fn ceil_div(numerator: u128, denominator: u128) -> Option<u128> {
 }
 
 pub fn calculate_fee(amount: u64, transfer_fee_basis_pts: u16) -> u64 {
-    let transfer_fee_basis_points = u16::from(transfer_fee_basis_pts) as u128;
+    let transfer_fee_basis_points = transfer_fee_basis_pts as u128;
     if transfer_fee_basis_points == 0 || amount == 0 {
         0
     } else {
         let numerator = (amount as u128)
             .checked_mul(transfer_fee_basis_points)
             .unwrap();
-        let raw_fee = ceil_div(numerator, 10_000)
+        ceil_div(numerator, 10_000)
             .unwrap()
             .try_into() // guaranteed to be okay
             .ok()
-            .unwrap();
-        raw_fee
+            .unwrap()
     }
 }

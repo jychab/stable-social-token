@@ -40,7 +40,7 @@ pub fn create_mint_metadata_handler(
     let bump = &[ctx.accounts.authority.load()?.bump];
     let mint_key = ctx.accounts.mint.key();
     let seeds: &[&[u8]] = &[b"authority".as_ref(), mint_key.as_ref(), bump];
-    let signer_seeds = &[&seeds[..]];
+    let signer_seeds = &[seeds];
 
     system_program::transfer(
         CpiContext::new(

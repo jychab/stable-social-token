@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("8EUZHN7aTsMgxaHvxv2Zbfgbf4faKT7mVk3QXe6WH5HA");
+declare_id!("4iKL2rCj42ZmvtzPQBadTcNndneJR2FRtJSmc8XzXAp9");
 
 mod error;
 mod instructions;
@@ -9,7 +9,7 @@ mod utils;
 
 use instructions::*;
 #[program]
-pub mod stable_social_token {
+pub mod candy_wrapper {
 
     use super::*;
 

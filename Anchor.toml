@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-stable_social_token = "8EUZHN7aTsMgxaHvxv2Zbfgbf4faKT7mVk3QXe6WH5HA"
+candy_wrapper = "4iKL2rCj42ZmvtzPQBadTcNndneJR2FRtJSmc8XzXAp9"
 
 [registry]
 url = "https://api.apr.dev"

@@ -82,12 +82,12 @@ pub fn issue_mint_handler<'info>(
     let fee = get_transfer_fee(&ctx.accounts.mint.to_account_info(), amount)?;
 
     let mint_key = ctx.accounts.mint.key();
-    let seeds = &[
+    let seeds: &[&[u8]] = &[
         b"authority",
         mint_key.as_ref(),
         &[ctx.accounts.authority.load()?.bump],
     ];
-    let signer = &[&seeds[..]];
+    let signer = &[seeds];
 
     if let Some(fee_collector_token_account) = &ctx.accounts.fee_collector_base_coin_token_account {
         if fee > 0 {

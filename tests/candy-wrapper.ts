@@ -18,14 +18,13 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { StableSocialToken } from "../target/types/stable_social_token";
+import { CandyWrapper } from "../target/types/candy_wrapper";
 
-describe("stable-social-token", () => {
+describe("candy-wrapper", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program = anchor.workspace
-    .StableSocialToken as Program<StableSocialToken>;
+  const program = anchor.workspace.CandyWrapper as Program<CandyWrapper>;
   const wallet = provider.wallet as anchor.Wallet;
   const connection = provider.connection;
 

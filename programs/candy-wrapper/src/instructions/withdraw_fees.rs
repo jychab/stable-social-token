@@ -95,12 +95,12 @@ pub fn withdraw_fees_handler<'info>(
     let withheld_amount = get_withheld_fee(&ctx.accounts.mint.to_account_info())?;
 
     let mint_key = ctx.accounts.mint.key();
-    let seeds = &[
+    let seeds: &[&[u8]] = &[
         b"authority",
         mint_key.as_ref(),
         &[ctx.accounts.authority.load()?.bump],
     ];
-    let signer = &[&seeds[..]];
+    let signer = &[seeds];
 
     withdraw_withheld_tokens_from_mint(
         CpiContext::new(
