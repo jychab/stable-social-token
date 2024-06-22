@@ -74,7 +74,7 @@ describe("candy-wrapper", () => {
         size: mintLen,
         admin: wallet.publicKey,
         mintToBaseRatio: 1,
-        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        baseCoin: USDC,
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
@@ -83,7 +83,7 @@ describe("candy-wrapper", () => {
         transferHookArgs: null,
       })
       .accounts({
-        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        baseCoin: USDC,
         payer: wallet.publicKey,
       })
       .instruction();
@@ -157,7 +157,7 @@ describe("candy-wrapper", () => {
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
-        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        baseCoin: USDC,
         authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
         payerBaseCoinTokenAccount: payerBaseTokenAccount,
@@ -233,7 +233,7 @@ describe("candy-wrapper", () => {
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
-        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        baseCoin: USDC,
         authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
         payerBaseCoinTokenAccount: payerBaseTokenAccount,
@@ -294,7 +294,7 @@ describe("candy-wrapper", () => {
       .accounts({
         payer: wallet.publicKey,
         mint: mint,
-        baseCoin: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        baseCoin: USDC,
         feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
         protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
         authorityMintTokenAccount: authorityMintTokenAccount,
