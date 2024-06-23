@@ -8,7 +8,7 @@ use anchor_spl::{
     },
 };
 
-use crate::{error::CustomError, state::Authority, utils::get_transfer_fee};
+use crate::{error::CustomError, state::Authority, utils::calculate_fee};
 #[derive(Accounts)]
 pub struct RedeemBaseCoinCtx<'info> {
     #[account(mut)]
@@ -85,7 +85,10 @@ pub fn redeem_basecoin_handler<'info>(
         .try_into()
         .unwrap();
 
-    let fee = get_transfer_fee(&ctx.accounts.mint.to_account_info(), base_amount)?;
+    let fee = calculate_fee(
+        base_amount,
+        ctx.accounts.authority.load()?.redemption_fee_basis_pts,
+    );
 
     let mint_key = ctx.accounts.mint.key();
     let seeds: &[&[u8]] = &[

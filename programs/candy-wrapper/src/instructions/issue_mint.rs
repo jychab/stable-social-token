@@ -8,7 +8,7 @@ use anchor_spl::{
     },
 };
 
-use crate::{error::CustomError, state::Authority, utils::get_transfer_fee};
+use crate::{error::CustomError, state::Authority, utils::calculate_fee};
 #[derive(Accounts)]
 pub struct IssueMintCtx<'info> {
     #[account(mut)]
@@ -79,7 +79,10 @@ pub fn issue_mint_handler<'info>(
         CustomError::InsufficientAmount
     );
 
-    let fee = get_transfer_fee(&ctx.accounts.mint.to_account_info(), amount)?;
+    let fee = calculate_fee(
+        amount,
+        ctx.accounts.authority.load()?.issuance_fee_basis_pts,
+    );
 
     let mint_key = ctx.accounts.mint.key();
     let seeds: &[&[u8]] = &[

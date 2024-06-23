@@ -20,6 +20,8 @@ pub struct CreateMintArgs {
     pub admin: Pubkey,
     pub base_coin: Pubkey,
     pub mint_to_base_ratio: u16,
+    pub issuance_fee_basis_pts: u16,
+    pub redemption_fee_basis_pts: u16,
     pub transfer_fee_args: Option<TransferFeeArgs>,
     pub transfer_hook_args: Option<TransferHookArgs>,
 }
@@ -76,8 +78,11 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
     authority.bump = ctx.bumps.authority;
     authority.base_coin = args.base_coin;
     authority.mint = ctx.accounts.mint.key();
-    authority.admin = args.admin;
     authority.mint_to_base_ratio = args.mint_to_base_ratio;
+
+    authority.admin = args.admin;
+    authority.issuance_fee_basis_pts = args.issuance_fee_basis_pts;
+    authority.redemption_fee_basis_pts = args.redemption_fee_basis_pts;
 
     require!(
         args.mint_to_base_ratio > 0,

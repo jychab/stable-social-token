@@ -5,12 +5,14 @@ use solana_program::pubkey;
 pub struct Authority {
     pub fees_collected: u64,
     pub mint_to_base_ratio: u16,
-    pub padding: [u8; 5],
+    pub issuance_fee_basis_pts: u16,
+    pub redemption_fee_basis_pts: u16,
+    pub padding: [u8; 1],
     pub bump: u8,
     pub base_coin: Pubkey,
     pub mint: Pubkey,
     pub fee_collector: Pubkey,
-    pub admin: Pubkey, // have the ability to change transfer fees, change transfer hook program Id & change metadata
+    pub admin: Pubkey, // have the ability to control transfer fees, issuance & redemption fee, transfer hook program Id & mint metadata
 }
 pub const AUTHORITY_SPACE: usize = 8 + std::mem::size_of::<Authority>();
 

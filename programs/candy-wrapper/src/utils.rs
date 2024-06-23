@@ -4,19 +4,6 @@ use anchor_spl::token_2022::spl_token_2022::{
     state,
 };
 
-pub fn get_transfer_fee(mint_info: &AccountInfo, amount: u64) -> Result<u64> {
-    let mint_data = mint_info.try_borrow_data()?;
-    let mint = StateWithExtensions::<state::Mint>::unpack(&mint_data)?;
-    let fee = if let Ok(transfer_fee_config) = mint.get_extension::<TransferFeeConfig>() {
-        transfer_fee_config
-            .calculate_epoch_fee(Clock::get()?.epoch, amount)
-            .unwrap()
-    } else {
-        0
-    };
-    Ok(fee)
-}
-
 pub fn get_withheld_fee(mint_info: &AccountInfo) -> Result<u64> {
     let mint_data = mint_info.try_borrow_data()?;
     let mint = StateWithExtensions::<state::Mint>::unpack(&mint_data)?;
@@ -42,7 +29,7 @@ pub fn calculate_fee(amount: u64, transfer_fee_basis_pts: u16) -> u64 {
             .unwrap();
         ceil_div(numerator, 10_000)
             .unwrap()
-            .try_into() // guaranteed to be okay
+            .try_into()
             .ok()
             .unwrap()
     }

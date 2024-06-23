@@ -11,7 +11,7 @@ candy_wrapper = "4iKL2rCj42ZmvtzPQBadTcNndneJR2FRtJSmc8XzXAp9"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://devnet.helius-rpc.com/?api-key=67cc99fc-f14e-499c-9507-48127506901f"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

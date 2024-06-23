@@ -75,6 +75,8 @@ describe("candy-wrapper", () => {
         admin: wallet.publicKey,
         mintToBaseRatio: 1,
         baseCoin: USDC,
+        issuanceFeeBasisPts: 0,
+        redemptionFeeBasisPts: 500,
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
@@ -311,5 +313,30 @@ describe("candy-wrapper", () => {
     console.log(`Transaction Signature: ${txSig}`);
 
     console.log(await program.account.authority.fetch(authority));
+  });
+  it("Change Issuance Fee", async () => {
+    const txSig = await program.methods
+      .changeIssuanceFee(1)
+      .accounts({ authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
+
+    console.log(
+      (await program.account.authority.fetch(authority)).issuanceFeeBasisPts
+    );
+  });
+
+  it("Change Redemption Fee", async () => {
+    const txSig = await program.methods
+      .changeRedemptionFee(1)
+      .accounts({ authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
+
+    console.log(
+      (await program.account.authority.fetch(authority)).redemptionFeeBasisPts
+    );
   });
 });

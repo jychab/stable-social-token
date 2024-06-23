@@ -55,4 +55,12 @@ pub mod candy_wrapper {
     ) -> Result<()> {
         instructions::withdraw_fees::withdraw_fees_handler(ctx)
     }
+
+    pub fn change_issuance_fee(ctx: Context<IssuanceFeeCtx>, fee_basis_pts: u16) -> Result<()> {
+        instructions::change_issuance_fee::change_issuance_fee_handler(ctx, fee_basis_pts)
+    }
+
+    pub fn change_redemption_fee(ctx: Context<RedemptionFeeCtx>, fee_basis_pts: u16) -> Result<()> {
+        instructions::change_redemption_fee::change_redemption_fee_handler(ctx, fee_basis_pts)
+    }
 }
