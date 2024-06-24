@@ -81,6 +81,14 @@ pub fn redeem_basecoin_handler<'info>(
         CustomError::InsufficientAmount
     );
 
+    let mint_key = ctx.accounts.mint.key();
+    let seeds: &[&[u8]] = &[
+        b"authority",
+        mint_key.as_ref(),
+        &[ctx.accounts.authority.load()?.bump],
+    ];
+    let signer = &[seeds];
+
     let base_coin_amount = calculate_base_coin_amount(
         amount,
         ctx.accounts.authority_base_coin_token_account.amount,
@@ -93,14 +101,6 @@ pub fn redeem_basecoin_handler<'info>(
     );
 
     let amount_after_fee = base_coin_amount.saturating_sub(fee);
-
-    let mint_key = ctx.accounts.mint.key();
-    let seeds: &[&[u8]] = &[
-        b"authority",
-        mint_key.as_ref(),
-        &[ctx.accounts.authority.load()?.bump],
-    ];
-    let signer = &[seeds];
 
     burn(
         CpiContext::new(
