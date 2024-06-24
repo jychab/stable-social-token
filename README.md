@@ -1,5 +1,5 @@
 ## Motivation
-Businesses accepting these crypto tokens face significant value fluctuations, risking losses when converting them to cover costs. This instability undermines their practicality for payments. While stablecoins like USDC offer low-cost transactions, cost alone is not sufficient to differentiate them from traditional payment methods. 
+Businesses accepting crypto tokens as payments face significant value fluctuations, making it impractical for pricing goods & services. While stablecoins like USDC offer low-cost transactions, cost alone is not sufficient to differentiate them from traditional payment methods. 
 
 ## Idea
 A smart contract mints tokens by locking an equivalent value of stablecoin in a program escrow. By utilizing token extensions such as transfer fees and transfer hooks, creators can add features to their tokens while value remains stable due to the stablecoin backing it.
