@@ -12,7 +12,7 @@ use anchor_spl::{
 use crate::{
     error::CustomError,
     state::{Authority, ProtocolFeeConfig, PROTOCOL_WALLET},
-    utils::{calculate_fee, get_withheld_fee},
+    utils::{calculate_base_coin_amount, calculate_fee, get_withheld_fee},
 };
 #[derive(Accounts)]
 pub struct WithdrawFeesCtx<'info> {
@@ -128,14 +128,17 @@ pub fn withdraw_fees_handler<'info>(
         withheld_amount,
     )?;
 
-    let mint_to_base_ratio = ctx.accounts.authority.load()?.mint_to_base_ratio;
-    let base_amount: u64 = u128::from(withheld_amount)
-        .checked_div(mint_to_base_ratio.into())
-        .unwrap()
-        .try_into()
-        .unwrap();
-    let fee = calculate_fee(base_amount, ctx.accounts.protocol_fee_config.fee_basis_pts);
-    let amount_after_fee = base_amount.saturating_sub(fee);
+    let base_coin_amount = calculate_base_coin_amount(
+        withheld_amount,
+        ctx.accounts.authority_base_coin_token_account.amount,
+        ctx.accounts.mint.supply,
+    );
+
+    let fee = calculate_fee(
+        base_coin_amount,
+        ctx.accounts.protocol_fee_config.fee_basis_pts,
+    );
+    let amount_after_fee = base_coin_amount.saturating_sub(fee);
 
     transfer_checked(
         CpiContext::new(

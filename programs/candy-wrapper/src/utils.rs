@@ -34,3 +34,43 @@ pub fn calculate_fee(amount: u64, transfer_fee_basis_pts: u16) -> u64 {
             .unwrap()
     }
 }
+
+pub fn calculate_mint_amount(
+    base_coin_amount: u64,
+    mint_to_base_ratio: u16,
+    authority_base_coin_amount: u64,
+    mint_supply_amount: u64,
+) -> u64 {
+    if mint_supply_amount > 0 {
+        (base_coin_amount as u128)
+            .checked_mul(mint_supply_amount as u128)
+            .unwrap()
+            .checked_div(authority_base_coin_amount as u128)
+            .unwrap()
+            .try_into()
+            .ok()
+            .unwrap()
+    } else {
+        (base_coin_amount as u128)
+            .checked_mul(mint_to_base_ratio as u128)
+            .unwrap()
+            .try_into()
+            .ok()
+            .unwrap()
+    }
+}
+
+pub fn calculate_base_coin_amount(
+    mint_amount: u64,
+    authority_base_coin_amount: u64,
+    mint_supply_amount: u64,
+) -> u64 {
+    (mint_amount as u128)
+        .checked_mul(authority_base_coin_amount as u128)
+        .unwrap()
+        .checked_div(mint_supply_amount as u128)
+        .unwrap()
+        .try_into()
+        .ok()
+        .unwrap()
+}

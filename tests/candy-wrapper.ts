@@ -1,10 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   ExtensionType,
   LENGTH_SIZE,
   TOKEN_2022_PROGRAM_ID,
   TYPE_SIZE,
+  burnChecked,
   getAssociatedTokenAddressSync,
   getMintLen,
   getOrCreateAssociatedTokenAccount,
@@ -15,6 +17,7 @@ import { TokenMetadata, pack } from "@solana/spl-token-metadata";
 import {
   Keypair,
   PublicKey,
+  SystemProgram,
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
@@ -28,14 +31,12 @@ describe("candy-wrapper", () => {
   const wallet = provider.wallet as anchor.Wallet;
   const connection = provider.connection;
 
-  const randomKey = Keypair.generate().publicKey;
   const recipient = new PublicKey(
     "4gfBPGmnvGCpgnStMfwqxBbbdmKncGLy6DKN18qZVuH4"
   );
-  const [mint] = PublicKey.findProgramAddressSync(
-    [Buffer.from("mint"), randomKey.toBuffer()],
-    program.programId
-  );
+  const mintKeypair = Keypair.generate();
+  // Address for Mint Account
+  const mint = mintKeypair.publicKey;
   const [authority] = PublicKey.findProgramAddressSync(
     [Buffer.from("authority"), mint.toBuffer()],
     program.programId
@@ -63,37 +64,45 @@ describe("candy-wrapper", () => {
   });
 
   it("Create Mint!", async () => {
+    // these two are compulsory other extensions are optional
     const mintLen = getMintLen([
       ExtensionType.TransferFeeConfig,
       ExtensionType.MetadataPointer,
     ]);
-    // Add your test here.
-    const ix = await program.methods
+    const lamports = await connection.getMinimumBalanceForRentExemption(
+      mintLen
+    );
+    const ix1 = SystemProgram.createAccount({
+      fromPubkey: wallet.publicKey,
+      newAccountPubkey: mint,
+      space: mintLen,
+      lamports,
+      programId: TOKEN_2022_PROGRAM_ID,
+    });
+    const ix2 = await program.methods
       .createMint({
-        randomKey: randomKey,
-        size: mintLen,
         admin: wallet.publicKey,
-        mintToBaseRatio: 1,
+        mintToBaseRatio: 69,
         baseCoin: USDC,
+        feeCollector: wallet.publicKey,
         issuanceFeeBasisPts: 0,
         redemptionFeeBasisPts: 500,
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
-          feeCollector: wallet.publicKey,
         },
-        transferHookArgs: null,
       })
       .accounts({
+        mint: mint,
         baseCoin: USDC,
         payer: wallet.publicKey,
       })
       .instruction();
-    const transaction = new Transaction().add(ix);
+    const transaction = new Transaction().add(ix1).add(ix2);
     const txSig = await sendAndConfirmTransaction(
       provider.connection,
       transaction,
-      [wallet.payer],
+      [wallet.payer, mintKeypair],
       { skipPreflight: true }
     );
     console.log(`Transaction Signature: ${txSig}`);
@@ -147,12 +156,13 @@ describe("candy-wrapper", () => {
     const payerMintTokenAccount = getAssociatedTokenAddressSync(
       mint,
       wallet.publicKey,
-      true,
+      false,
       TOKEN_2022_PROGRAM_ID
     );
     const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
       USDC,
-      wallet.publicKey
+      wallet.publicKey,
+      true
     );
     const ix = await program.methods
       .issueMint(new anchor.BN(1 * 10 ** 6))
@@ -184,9 +194,10 @@ describe("candy-wrapper", () => {
       mint,
       wallet.publicKey,
       false,
-      "confirmed",
       undefined,
-      TOKEN_2022_PROGRAM_ID
+      undefined,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
     );
     const destination = await getOrCreateAssociatedTokenAccount(
       connection,
@@ -194,7 +205,21 @@ describe("candy-wrapper", () => {
       mint,
       recipient,
       false,
-      "confirmed",
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    await burnChecked(
+      connection,
+      wallet.payer,
+      source.address,
+      mint,
+      wallet.publicKey,
+      0.1 * 10 ** 6,
+      6,
+      undefined,
       undefined,
       TOKEN_2022_PROGRAM_ID
     );
