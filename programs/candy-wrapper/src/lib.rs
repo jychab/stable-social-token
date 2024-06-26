@@ -36,6 +36,14 @@ pub mod candy_wrapper {
         )
     }
 
+    pub fn change_transfer_fee<'info>(
+        ctx: Context<'_, '_, '_, 'info, TransferFeeCtx<'info>>,
+        fee_basis_pts: u16,
+        max_fee: u64,
+    ) -> Result<()> {
+        instructions::change_transfer_fee::change_transfer_fee_handler(ctx, fee_basis_pts, max_fee)
+    }
+
     pub fn issue_mint<'info>(
         ctx: Context<'_, '_, '_, 'info, IssueMintCtx<'info>>,
         amount: u64,

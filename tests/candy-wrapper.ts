@@ -7,15 +7,18 @@ import {
   TOKEN_2022_PROGRAM_ID,
   TYPE_SIZE,
   burnChecked,
+  createMint,
   getAssociatedTokenAddressSync,
   getMintLen,
   getOrCreateAssociatedTokenAccount,
   harvestWithheldTokensToMint,
+  mintTo,
   transferChecked,
 } from "@solana/spl-token";
 import { TokenMetadata, pack } from "@solana/spl-token-metadata";
 import {
   Keypair,
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   Transaction,
@@ -41,18 +44,46 @@ describe("candy-wrapper", () => {
     [Buffer.from("authority"), mint.toBuffer()],
     program.programId
   );
-  const USDC = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
-  const authorityBaseTokenAccount = getAssociatedTokenAddressSync(
-    USDC,
-    authority,
-    true
-  );
-  const authorityMintTokenAccount = getAssociatedTokenAddressSync(
-    mint,
-    authority,
-    true,
-    TOKEN_2022_PROGRAM_ID
-  );
+  let USDC: PublicKey;
+  let authorityBaseTokenAccount;
+  let authorityMintTokenAccount;
+
+  it("Create Mint & Airdrop Sol to Wallets", async () => {
+    await connection.requestAirdrop(wallet.publicKey, LAMPORTS_PER_SOL);
+    await connection.requestAirdrop(recipient, LAMPORTS_PER_SOL);
+    USDC = await createMint(
+      connection,
+      wallet.payer,
+      wallet.publicKey,
+      wallet.publicKey,
+      6
+    );
+    const destination = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      USDC,
+      wallet.publicKey
+    );
+    await mintTo(
+      connection,
+      wallet.payer,
+      USDC,
+      destination.address,
+      wallet.publicKey,
+      10 * 10 ** 6
+    );
+    authorityBaseTokenAccount = getAssociatedTokenAddressSync(
+      USDC,
+      authority,
+      true
+    );
+    authorityMintTokenAccount = getAssociatedTokenAddressSync(
+      mint,
+      authority,
+      true,
+      TOKEN_2022_PROGRAM_ID
+    );
+  });
 
   it("Set Protocol Fee", async () => {
     const txSig = await program.methods
@@ -391,5 +422,14 @@ describe("candy-wrapper", () => {
     console.log(
       (await program.account.authority.fetch(authority)).redemptionFeeBasisPts
     );
+  });
+
+  it("Change Transfer Fee", async () => {
+    const txSig = await program.methods
+      .changeTransferFee(1, new anchor.BN(0))
+      .accounts({ mint: mint, authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
   });
 });
