@@ -5,8 +5,9 @@ pub enum CustomError {
     IncorrectUpdateAuthority,
     IncorrectMint,
     IncorrectFeeCollector,
-    IncorrectTokenProgram,
     UnauthorizedBaseCoin,
     InsufficientAmount,
     MintRatioCannotBeZero,
+    IssuanceFeeBasisPtsCannotExceed100,
+    RedemptionFeeBasisPtsCannotExceed100,
 }

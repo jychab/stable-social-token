@@ -1,15 +1,20 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{
+    prelude::*,
+    system_program::{self, Transfer},
+};
 use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::Token,
     token_2022::Token2022,
     token_interface::{
         initialize_mint, metadata_pointer_initialize, transfer_fee_initialize, InitializeMint,
-        MetadataPointerInitialize, Mint, TokenInterface, TransferFeeInitialize,
+        MetadataPointerInitialize, Mint, TokenAccount, TokenInterface, TransferFeeInitialize,
     },
 };
 
 use crate::{
     error::CustomError,
-    state::{Authority, AUTHORITY_SPACE},
+    state::{Authority, AUTHORITY_SPACE, PROTOCOL_WALLET},
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -53,14 +58,44 @@ pub struct CreateMintCtx<'info> {
     )]
     pub base_coin: InterfaceAccount<'info, Mint>,
     #[account(
-        address = Token2022::id() @CustomError::IncorrectTokenProgram,
+        address = PROTOCOL_WALLET,
+    )]
+    /// CHECK:
+    pub protocol_wallet: AccountInfo<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = base_coin,
+        associated_token::token_program = token_program,
+        associated_token::authority = protocol_wallet,
+    )]
+    pub protocol_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(
+        address = Token2022::id(),
     )]
     pub token_program_2022: Interface<'info, TokenInterface>,
+    #[account(
+        address = Token::id()
+    )]
+    pub token_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) -> Result<()> {
+    require!(
+        args.issuance_fee_basis_pts <= 100,
+        CustomError::IssuanceFeeBasisPtsCannotExceed100
+    );
+    require!(
+        args.redemption_fee_basis_pts <= 100,
+        CustomError::RedemptionFeeBasisPtsCannotExceed100
+    );
+    require!(
+        args.mint_to_base_ratio > 0,
+        CustomError::MintRatioCannotBeZero
+    );
     let authority = &mut ctx.accounts.authority.load_init()?;
     authority.bump = ctx.bumps.authority;
     authority.base_coin = args.base_coin;
@@ -70,11 +105,6 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
     authority.admin = args.admin;
     authority.issuance_fee_basis_pts = args.issuance_fee_basis_pts;
     authority.redemption_fee_basis_pts = args.redemption_fee_basis_pts;
-
-    require!(
-        args.mint_to_base_ratio > 0,
-        CustomError::MintRatioCannotBeZero
-    );
 
     // initialize transfer fee
     transfer_fee_initialize(
@@ -116,6 +146,17 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
         ctx.accounts.base_coin.decimals,
         &ctx.accounts.authority.key(),
         None,
+    )?;
+
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.payer.to_account_info(),
+                to: ctx.accounts.protocol_wallet.to_account_info(),
+            },
+        ),
+        100000000, // 0.1 SOL
     )?;
 
     Ok(())

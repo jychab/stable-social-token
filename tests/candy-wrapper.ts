@@ -72,6 +72,14 @@ describe("candy-wrapper", () => {
     const lamports = await connection.getMinimumBalanceForRentExemption(
       mintLen
     );
+    const protocolBaseCoinTokenAccount =
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        wallet.payer,
+        USDC,
+        wallet.publicKey,
+        false
+      );
     const ix1 = SystemProgram.createAccount({
       fromPubkey: wallet.publicKey,
       newAccountPubkey: mint,
@@ -85,8 +93,8 @@ describe("candy-wrapper", () => {
         mintToBaseRatio: 69,
         baseCoin: USDC,
         feeCollector: wallet.publicKey,
-        issuanceFeeBasisPts: 0,
-        redemptionFeeBasisPts: 500,
+        issuanceFeeBasisPts: 100,
+        redemptionFeeBasisPts: 100,
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
@@ -96,6 +104,7 @@ describe("candy-wrapper", () => {
         mint: mint,
         baseCoin: USDC,
         payer: wallet.publicKey,
+        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
       })
       .instruction();
     const transaction = new Transaction().add(ix1).add(ix2);
@@ -164,12 +173,21 @@ describe("candy-wrapper", () => {
       wallet.publicKey,
       true
     );
+    const protocolBaseCoinTokenAccount =
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        wallet.payer,
+        USDC,
+        wallet.publicKey,
+        false
+      );
     const ix = await program.methods
       .issueMint(new anchor.BN(1 * 10 ** 6))
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
         baseCoin: USDC,
+        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
         authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
         payerBaseCoinTokenAccount: payerBaseTokenAccount,
@@ -255,12 +273,22 @@ describe("candy-wrapper", () => {
       USDC,
       wallet.publicKey
     );
+    const protocolBaseCoinTokenAccount =
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        wallet.payer,
+        USDC,
+        wallet.publicKey,
+        false
+      );
+
     const ix = await program.methods
       .redeemBasecoin(new anchor.BN((1 * (9995 / 10000) - 0.1) * 10 ** 6))
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
         baseCoin: USDC,
+        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
         authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
         payerBaseCoinTokenAccount: payerBaseTokenAccount,

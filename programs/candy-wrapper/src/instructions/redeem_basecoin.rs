@@ -10,7 +10,7 @@ use anchor_spl::{
 
 use crate::{
     error::CustomError,
-    state::Authority,
+    state::{Authority, ProtocolFeeConfig, PROTOCOL_WALLET},
     utils::{calculate_base_coin_amount, calculate_fee},
 };
 #[derive(Accounts)]
@@ -60,6 +60,18 @@ pub struct RedeemBaseCoinCtx<'info> {
         constraint = fee_collector_base_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
     pub fee_collector_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(
+        seeds = [b"config", PROTOCOL_WALLET.as_ref()],
+        bump = protocol_fee_config.bump,
+    )]
+    pub protocol_fee_config: Box<Account<'info, ProtocolFeeConfig>>,
+    #[account(
+        mut,
+        token::mint = base_coin,
+        token::token_program = token_program,
+        constraint = protocol_base_coin_token_account.owner == PROTOCOL_WALLET,
+    )]
+    pub protocol_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         address = Token2022::id()
     )]
@@ -115,7 +127,9 @@ pub fn redeem_basecoin_handler<'info>(
     )?;
 
     if fee > 0 {
-        ctx.accounts.authority.load_mut()?.fees_collected += fee;
+        let protocol_fee = calculate_fee(fee, ctx.accounts.protocol_fee_config.fee_basis_pts);
+        let amount_after_protocol_fee = fee.saturating_sub(protocol_fee);
+
         transfer_checked(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -133,9 +147,28 @@ pub fn redeem_basecoin_handler<'info>(
                 },
             )
             .with_signer(signer),
-            fee,
+            amount_after_protocol_fee,
             ctx.accounts.base_coin.decimals,
         )?;
+
+        transfer_checked(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                TransferChecked {
+                    from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
+                    mint: ctx.accounts.base_coin.to_account_info(),
+                    to: ctx
+                        .accounts
+                        .protocol_base_coin_token_account
+                        .to_account_info(),
+                    authority: ctx.accounts.payer.to_account_info(),
+                },
+            ),
+            protocol_fee,
+            ctx.accounts.base_coin.decimals,
+        )?;
+
+        ctx.accounts.authority.load_mut()?.fees_collected += amount_after_protocol_fee;
     }
 
     transfer_checked(

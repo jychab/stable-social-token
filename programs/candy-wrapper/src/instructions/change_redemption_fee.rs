@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::Authority;
+use crate::{error::CustomError, state::Authority};
 
 #[derive(Accounts)]
 pub struct RedemptionFeeCtx<'info> {
@@ -17,6 +17,10 @@ pub fn change_redemption_fee_handler(
     ctx: Context<RedemptionFeeCtx>,
     fee_basis_pts: u16,
 ) -> Result<()> {
+    require!(
+        fee_basis_pts <= 100,
+        CustomError::RedemptionFeeBasisPtsCannotExceed100
+    );
     let authority = &mut ctx.accounts.authority.load_mut()?;
     authority.redemption_fee_basis_pts = fee_basis_pts;
     Ok(())
