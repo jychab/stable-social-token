@@ -8,10 +8,7 @@ use crate::{error::CustomError, state::Authority};
 
 #[derive(Accounts)]
 pub struct CreateMintMetadataCtx<'info> {
-    #[account(
-        mut,
-        constraint = payer.key() == authority.load()?.admin @CustomError::IncorrectUpdateAuthority,
-    )]
+    #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
         mut,
@@ -26,7 +23,7 @@ pub struct CreateMintMetadataCtx<'info> {
     #[account(
         address = Token2022::id()
     )]
-    pub token_program_2022: Interface<'info, TokenInterface>,
+    pub token_program_mint: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -55,9 +52,9 @@ pub fn create_mint_metadata_handler(
 
     token_metadata_initialize(
         CpiContext::new(
-            ctx.accounts.token_program_2022.to_account_info(),
+            ctx.accounts.token_program_mint.to_account_info(),
             TokenMetadataInitialize {
-                token_program_id: ctx.accounts.token_program_2022.to_account_info(),
+                token_program_id: ctx.accounts.token_program_mint.to_account_info(),
                 metadata: ctx.accounts.mint.to_account_info(),
                 update_authority: ctx.accounts.payer.to_account_info(),
                 mint_authority: ctx.accounts.authority.to_account_info(),

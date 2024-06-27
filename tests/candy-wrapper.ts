@@ -5,6 +5,7 @@ import {
   ExtensionType,
   LENGTH_SIZE,
   TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
   TYPE_SIZE,
   burnChecked,
   createMint,
@@ -136,6 +137,7 @@ describe("candy-wrapper", () => {
         baseCoin: USDC,
         payer: wallet.publicKey,
         protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
+        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
       })
       .instruction();
     const transaction = new Transaction().add(ix1).add(ix2);
@@ -223,6 +225,7 @@ describe("candy-wrapper", () => {
         payerMintTokenAccount: payerMintTokenAccount,
         payerBaseCoinTokenAccount: payerBaseTokenAccount,
         feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
+        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
       })
       .instruction();
 
@@ -324,6 +327,7 @@ describe("candy-wrapper", () => {
         payerMintTokenAccount: payerMintTokenAccount,
         payerBaseCoinTokenAccount: payerBaseTokenAccount,
         feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
+        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
       })
       .instruction();
 
@@ -385,6 +389,7 @@ describe("candy-wrapper", () => {
         protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
         authorityMintTokenAccount: authorityMintTokenAccount,
         authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
+        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
       })
       .instruction();
     const transaction = new Transaction().add(ix);
@@ -398,6 +403,20 @@ describe("candy-wrapper", () => {
 
     console.log(await program.account.authority.fetch(authority));
   });
+
+  it("Change Fee Collector", async () => {
+    const txSig = await program.methods
+      .changeFeeCollector(recipient)
+      .accounts({ authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
+
+    console.log(
+      (await program.account.authority.fetch(authority)).feeCollector
+    );
+  });
+
   it("Change Issuance Fee", async () => {
     const txSig = await program.methods
       .changeIssuanceFee(1)
@@ -422,6 +441,44 @@ describe("candy-wrapper", () => {
     console.log(
       (await program.account.authority.fetch(authority)).redemptionFeeBasisPts
     );
+  });
+
+  it("Change Transfer Fee", async () => {
+    const txSig = await program.methods
+      .changeTransferFee(1, new anchor.BN(0))
+      .accounts({ mint: mint, authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
+  });
+
+  it("Set To Immutable", async () => {
+    const txSig = await program.methods
+      .setFeesToImmutable()
+      .accounts({ authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
+
+    console.log((await program.account.authority.fetch(authority)).mutable);
+  });
+
+  it("Change Issuance Fee", async () => {
+    const txSig = await program.methods
+      .changeIssuanceFee(1)
+      .accounts({ authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
+  });
+
+  it("Change Redemption Fee", async () => {
+    const txSig = await program.methods
+      .changeRedemptionFee(1)
+      .accounts({ authority: authority, payer: wallet.publicKey })
+      .rpc();
+
+    console.log(`Transaction Signature: ${txSig}`);
   });
 
   it("Change Transfer Fee", async () => {

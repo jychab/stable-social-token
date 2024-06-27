@@ -4,7 +4,6 @@ use anchor_lang::{
 };
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::Token,
     token_2022::Token2022,
     token_interface::{
         initialize_mint, metadata_pointer_initialize, transfer_fee_initialize, InitializeMint,
@@ -41,7 +40,7 @@ pub struct CreateMintCtx<'info> {
     pub payer: Signer<'info>,
     #[account(
         mut,
-        owner = token_program_2022.key(),
+        owner = token_program_mint.key(),
     )]
     /// CHECK: Mint to be created
     pub mint: AccountInfo<'info>,
@@ -66,18 +65,15 @@ pub struct CreateMintCtx<'info> {
         init_if_needed,
         payer = payer,
         associated_token::mint = base_coin,
-        associated_token::token_program = token_program,
+        associated_token::token_program = token_program_base_coin,
         associated_token::authority = protocol_wallet,
     )]
     pub protocol_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         address = Token2022::id(),
     )]
-    pub token_program_2022: Interface<'info, TokenInterface>,
-    #[account(
-        address = Token::id()
-    )]
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program_mint: Interface<'info, TokenInterface>,
+    pub token_program_base_coin: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -105,17 +101,18 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
     authority.admin = args.admin;
     authority.issuance_fee_basis_pts = args.issuance_fee_basis_pts;
     authority.redemption_fee_basis_pts = args.redemption_fee_basis_pts;
+    authority.mutable = 1;
 
     // initialize transfer fee
     transfer_fee_initialize(
         CpiContext::new(
-            ctx.accounts.token_program_2022.to_account_info(),
+            ctx.accounts.token_program_mint.to_account_info(),
             TransferFeeInitialize {
-                token_program_id: ctx.accounts.token_program_2022.to_account_info(),
+                token_program_id: ctx.accounts.token_program_mint.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
             },
         ),
-        Some(&args.admin),
+        Some(&ctx.accounts.authority.key()),
         Some(&ctx.accounts.authority.key()),
         args.transfer_fee_args.fee_basis_pts,
         args.transfer_fee_args.max_fee,
@@ -124,20 +121,20 @@ pub fn create_mint_handler(ctx: Context<CreateMintCtx>, args: CreateMintArgs) ->
     // initialize mint metadata pointer
     metadata_pointer_initialize(
         CpiContext::new(
-            ctx.accounts.token_program_2022.to_account_info(),
+            ctx.accounts.token_program_mint.to_account_info(),
             MetadataPointerInitialize {
-                token_program_id: ctx.accounts.token_program_2022.to_account_info(),
+                token_program_id: ctx.accounts.token_program_mint.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
             },
         ),
-        Some(args.admin),
+        Some(ctx.accounts.payer.key()),
         Some(ctx.accounts.mint.key()),
     )?;
 
     // intialize mint
     initialize_mint(
         CpiContext::new(
-            ctx.accounts.token_program_2022.to_account_info(),
+            ctx.accounts.token_program_mint.to_account_info(),
             InitializeMint {
                 mint: ctx.accounts.mint.to_account_info(),
                 rent: ctx.accounts.rent.to_account_info(),

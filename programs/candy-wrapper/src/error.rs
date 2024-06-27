@@ -10,4 +10,7 @@ pub enum CustomError {
     MintRatioCannotBeZero,
     IssuanceFeeBasisPtsCannotExceed100,
     RedemptionFeeBasisPtsCannotExceed100,
+    MintIsImmutable,
+    MintIsNotZero,
+    BaseCoinIsNotZero,
 }

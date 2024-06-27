@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::Token,
     token_2022::Token2022,
     token_interface::{
         mint_to, transfer_checked, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
@@ -22,14 +21,14 @@ pub struct IssueMintCtx<'info> {
         payer = payer,
         associated_token::mint = mint,
         associated_token::authority = payer,
-        associated_token::token_program = token_program_2022,
+        associated_token::token_program = token_program_mint,
     )]
     pub payer_mint_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         token::mint = base_coin,
         token::authority = payer,
-        token::token_program = token_program,
+        token::token_program = token_program_base_coin,
     )]
     pub payer_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
@@ -46,7 +45,7 @@ pub struct IssueMintCtx<'info> {
         payer = payer,
         associated_token::mint = base_coin,
         associated_token::authority = authority,
-        associated_token::token_program = token_program
+        associated_token::token_program = token_program_base_coin
     )]
     pub authority_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
@@ -58,7 +57,7 @@ pub struct IssueMintCtx<'info> {
     #[account(
         mut,
         token::mint = base_coin,
-        token::token_program = token_program,
+        token::token_program = token_program_base_coin,
         constraint = fee_collector_base_coin_token_account.owner == authority.load()?.fee_collector @CustomError::IncorrectFeeCollector,
     )]
     pub fee_collector_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -70,18 +69,15 @@ pub struct IssueMintCtx<'info> {
     #[account(
         mut,
         token::mint = base_coin,
-        token::token_program = token_program,
+        token::token_program = token_program_base_coin,
         constraint = protocol_base_coin_token_account.owner == PROTOCOL_WALLET,
     )]
     pub protocol_base_coin_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         address = Token2022::id()
     )]
-    pub token_program_2022: Interface<'info, TokenInterface>,
-    #[account(
-        address = Token::id()
-    )]
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program_mint: Interface<'info, TokenInterface>,
+    pub token_program_base_coin: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
@@ -118,7 +114,7 @@ pub fn issue_mint_handler<'info>(
 
     mint_to(
         CpiContext::new(
-            ctx.accounts.token_program_2022.to_account_info(),
+            ctx.accounts.token_program_mint.to_account_info(),
             MintTo {
                 mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.payer_mint_token_account.to_account_info(),
@@ -134,7 +130,7 @@ pub fn issue_mint_handler<'info>(
         let amount_after_protocol_fee = fee.saturating_sub(protocol_fee);
         transfer_checked(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_program_base_coin.to_account_info(),
                 TransferChecked {
                     from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
                     mint: ctx.accounts.base_coin.to_account_info(),
@@ -151,7 +147,7 @@ pub fn issue_mint_handler<'info>(
 
         transfer_checked(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_program_base_coin.to_account_info(),
                 TransferChecked {
                     from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
                     mint: ctx.accounts.base_coin.to_account_info(),
@@ -171,7 +167,7 @@ pub fn issue_mint_handler<'info>(
 
     transfer_checked(
         CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.token_program_base_coin.to_account_info(),
             TransferChecked {
                 from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
                 mint: ctx.accounts.base_coin.to_account_info(),

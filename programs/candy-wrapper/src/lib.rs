@@ -20,6 +20,21 @@ pub mod candy_wrapper {
         instructions::set_protocol_fee::set_protocol_fee_handler(ctx, fee_basis_pts)
     }
 
+    pub fn set_fees_to_immutable(ctx: Context<ImmutableCtx>) -> Result<()> {
+        instructions::set_fees_to_immutable::set_fees_to_immutable_handler(ctx)
+    }
+
+    pub fn close_account(ctx: Context<CloseAccountCtx>) -> Result<()> {
+        instructions::close_account::close_account_handler(ctx)
+    }
+
+    pub fn change_fee_collector(
+        ctx: Context<FeeCollectorCtx>,
+        new_fee_collector: Pubkey,
+    ) -> Result<()> {
+        instructions::change_fee_collector::change_fee_collector_handler(ctx, new_fee_collector)
+    }
+
     pub fn create_mint(ctx: Context<CreateMintCtx>, args: CreateMintArgs) -> Result<()> {
         instructions::create_mint::create_mint_handler(ctx, args)
     }

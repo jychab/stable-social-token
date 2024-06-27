@@ -1,19 +1,25 @@
 pub mod admin;
+pub mod change_fee_collector;
 pub mod change_issuance_fee;
 pub mod change_redemption_fee;
 pub mod change_transfer_fee;
+pub mod close_account;
 pub mod create_mint;
 pub mod create_mint_metadata;
 pub mod issue_mint;
 pub mod redeem_basecoin;
+pub mod set_fees_to_immutable;
 pub mod withdraw_fees;
 
 pub use admin::*;
+pub use change_fee_collector::*;
 pub use change_issuance_fee::*;
 pub use change_redemption_fee::*;
 pub use change_transfer_fee::*;
+pub use close_account::*;
 pub use create_mint::*;
 pub use create_mint_metadata::*;
 pub use issue_mint::*;
 pub use redeem_basecoin::*;
+pub use set_fees_to_immutable::*;
 pub use withdraw_fees::*;

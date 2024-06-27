@@ -5,7 +5,7 @@ use anchor_spl::{
     },
     token_interface::{Mint, TokenInterface},
 };
-use solana_program::program::invoke;
+use solana_program::program::invoke_signed;
 
 use crate::{error::CustomError, state::Authority};
 
@@ -25,7 +25,7 @@ pub struct TransferFeeCtx<'info> {
     #[account(
         address = Token2022::id()
     )]
-    pub token_program_2022: Interface<'info, TokenInterface>,
+    pub token_program_mint: Interface<'info, TokenInterface>,
 }
 
 pub fn change_transfer_fee_handler(
@@ -33,20 +33,33 @@ pub fn change_transfer_fee_handler(
     fee_basis_pts: u16,
     max_fee: u64,
 ) -> Result<()> {
+    require!(
+        ctx.accounts.authority.load()?.mutable == 1,
+        CustomError::MintIsImmutable
+    );
+    let mint_key = ctx.accounts.mint.key();
+    let seeds: &[&[u8]] = &[
+        b"authority",
+        mint_key.as_ref(),
+        &[ctx.accounts.authority.load()?.bump],
+    ];
+    let signer = &[seeds];
+
     let ix = set_transfer_fee(
-        ctx.accounts.token_program_2022.key,
+        ctx.accounts.token_program_mint.key,
         &ctx.accounts.mint.key(),
-        &ctx.accounts.payer.key(),
+        &ctx.accounts.authority.key(),
         &[],
         fee_basis_pts,
         max_fee,
     )?;
-    invoke(
+    invoke_signed(
         &ix,
         &[
             ctx.accounts.mint.to_account_info(),
-            ctx.accounts.payer.to_account_info(),
+            ctx.accounts.authority.to_account_info(),
         ],
+        signer,
     )?;
     Ok(())
 }
