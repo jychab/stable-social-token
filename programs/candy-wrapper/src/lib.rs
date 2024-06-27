@@ -20,8 +20,12 @@ pub mod candy_wrapper {
         instructions::set_protocol_fee::set_protocol_fee_handler(ctx, fee_basis_pts)
     }
 
-    pub fn set_fees_to_immutable(ctx: Context<ImmutableCtx>) -> Result<()> {
-        instructions::set_fees_to_immutable::set_fees_to_immutable_handler(ctx)
+    pub fn set_to_immutable(ctx: Context<ImmutableCtx>) -> Result<()> {
+        instructions::set_to_immutable::set_to_immutable_handler(ctx)
+    }
+
+    pub fn change_admin(ctx: Context<AdminCtx>, new_admin: Pubkey) -> Result<()> {
+        instructions::change_admin::change_admin_handler(ctx, new_admin)
     }
 
     pub fn close_account(ctx: Context<CloseAccountCtx>) -> Result<()> {
