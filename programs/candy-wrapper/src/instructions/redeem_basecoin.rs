@@ -151,15 +151,19 @@ pub fn redeem_basecoin_handler<'info>(
             CpiContext::new(
                 ctx.accounts.token_program_base_coin.to_account_info(),
                 TransferChecked {
-                    from: ctx.accounts.payer_base_coin_token_account.to_account_info(),
+                    from: ctx
+                        .accounts
+                        .authority_base_coin_token_account
+                        .to_account_info(),
                     mint: ctx.accounts.base_coin.to_account_info(),
                     to: ctx
                         .accounts
                         .protocol_base_coin_token_account
                         .to_account_info(),
-                    authority: ctx.accounts.payer.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
                 },
-            ),
+            )
+            .with_signer(signer),
             protocol_fee,
             ctx.accounts.base_coin.decimals,
         )?;
