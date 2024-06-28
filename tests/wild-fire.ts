@@ -5,7 +5,6 @@ import {
   ExtensionType,
   LENGTH_SIZE,
   TOKEN_2022_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
   TYPE_SIZE,
   burnChecked,
   createMint,
@@ -25,13 +24,13 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { CandyWrapper } from "../target/types/candy_wrapper";
+import { WildFire } from "../target/types/wild_fire";
 
-describe("candy-wrapper", () => {
+describe("wild-fire", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program = anchor.workspace.CandyWrapper as Program<CandyWrapper>;
+  const program = anchor.workspace.WildFire as Program<WildFire>;
   const wallet = provider.wallet as anchor.Wallet;
   const connection = provider.connection;
 
@@ -122,11 +121,7 @@ describe("candy-wrapper", () => {
     const ix2 = await program.methods
       .createMint({
         admin: wallet.publicKey,
-        mintToBaseRatio: 69,
-        baseCoin: USDC,
         feeCollector: wallet.publicKey,
-        issuanceFeeBasisPts: 100,
-        redemptionFeeBasisPts: 100,
         transferFeeArgs: {
           feeBasisPts: 5,
           maxFee: new anchor.BN(Number.MAX_SAFE_INTEGER),
@@ -134,10 +129,7 @@ describe("candy-wrapper", () => {
       })
       .accounts({
         mint: mint,
-        baseCoin: USDC,
         payer: wallet.publicKey,
-        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
-        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
       })
       .instruction();
     const transaction = new Transaction().add(ix1).add(ix2);
@@ -219,13 +211,7 @@ describe("candy-wrapper", () => {
       .accounts({
         mint: mint,
         payer: wallet.publicKey,
-        baseCoin: USDC,
-        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
-        authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
         payerMintTokenAccount: payerMintTokenAccount,
-        payerBaseCoinTokenAccount: payerBaseTokenAccount,
-        feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
-        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
       })
       .instruction();
 
@@ -292,55 +278,6 @@ describe("candy-wrapper", () => {
     console.log(`Transaction Signature: ${txSig}`);
   });
 
-  it("Redeem Basecoin!", async () => {
-    const payerBaseTokenAccount = getAssociatedTokenAddressSync(
-      USDC,
-      wallet.publicKey
-    );
-    const payerMintTokenAccount = getAssociatedTokenAddressSync(
-      mint,
-      wallet.publicKey,
-      true,
-      TOKEN_2022_PROGRAM_ID
-    );
-    const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
-      USDC,
-      wallet.publicKey
-    );
-    const protocolBaseCoinTokenAccount =
-      await getOrCreateAssociatedTokenAccount(
-        connection,
-        wallet.payer,
-        USDC,
-        wallet.publicKey,
-        false
-      );
-
-    const ix = await program.methods
-      .redeemBasecoin(new anchor.BN((1 * (9995 / 10000) - 0.1) * 10 ** 6))
-      .accounts({
-        mint: mint,
-        payer: wallet.publicKey,
-        baseCoin: USDC,
-        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
-        authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
-        payerMintTokenAccount: payerMintTokenAccount,
-        payerBaseCoinTokenAccount: payerBaseTokenAccount,
-        feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
-        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
-      })
-      .instruction();
-
-    const transaction = new Transaction().add(ix);
-    const txSig = await sendAndConfirmTransaction(
-      provider.connection,
-      transaction,
-      [wallet.payer],
-      { skipPreflight: true }
-    );
-    console.log(`Transaction Signature: ${txSig}`);
-  });
-
   it("Harvest fee to mint", async () => {
     const destination = await getOrCreateAssociatedTokenAccount(
       connection,
@@ -365,18 +302,22 @@ describe("candy-wrapper", () => {
   });
 
   it("Withdraw to fee collector", async () => {
-    const protocolBaseCoinTokenAccount =
-      await getOrCreateAssociatedTokenAccount(
-        connection,
-        wallet.payer,
-        USDC,
-        wallet.publicKey,
-        false
-      );
+    const protocolMintTokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      mint,
+      wallet.publicKey,
+      true,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
 
-    const feeCollectorBaseCoinTokenAccount = getAssociatedTokenAddressSync(
-      USDC,
-      wallet.publicKey
+    const feeCollectorMintTokenAccount = getAssociatedTokenAddressSync(
+      mint,
+      wallet.publicKey,
+      true,
+      TOKEN_2022_PROGRAM_ID
     );
 
     const ix = await program.methods
@@ -384,12 +325,9 @@ describe("candy-wrapper", () => {
       .accounts({
         payer: wallet.publicKey,
         mint: mint,
-        baseCoin: USDC,
-        feeCollectorBaseCoinTokenAccount: feeCollectorBaseCoinTokenAccount,
-        protocolBaseCoinTokenAccount: protocolBaseCoinTokenAccount.address,
+        protocolMintTokenAccount: protocolMintTokenAccount.address,
         authorityMintTokenAccount: authorityMintTokenAccount,
-        authorityBaseCoinTokenAccount: authorityBaseTokenAccount,
-        tokenProgramBaseCoin: TOKEN_PROGRAM_ID,
+        feeCollectorMintTokenAccount: feeCollectorMintTokenAccount,
       })
       .instruction();
     const transaction = new Transaction().add(ix);
@@ -417,32 +355,6 @@ describe("candy-wrapper", () => {
     );
   });
 
-  it("Change Issuance Fee", async () => {
-    const txSig = await program.methods
-      .changeIssuanceFee(1)
-      .accounts({ authority: authority, payer: wallet.publicKey })
-      .rpc();
-
-    console.log(`Transaction Signature: ${txSig}`);
-
-    console.log(
-      (await program.account.authority.fetch(authority)).issuanceFeeBasisPts
-    );
-  });
-
-  it("Change Redemption Fee", async () => {
-    const txSig = await program.methods
-      .changeRedemptionFee(1)
-      .accounts({ authority: authority, payer: wallet.publicKey })
-      .rpc();
-
-    console.log(`Transaction Signature: ${txSig}`);
-
-    console.log(
-      (await program.account.authority.fetch(authority)).redemptionFeeBasisPts
-    );
-  });
-
   it("Change Transfer Fee", async () => {
     const txSig = await program.methods
       .changeTransferFee(1, new anchor.BN(0))
@@ -454,31 +366,13 @@ describe("candy-wrapper", () => {
 
   it("Set To Immutable", async () => {
     const txSig = await program.methods
-      .setFeesToImmutable()
-      .accounts({ authority: authority, payer: wallet.publicKey })
+      .setToImmutable()
+      .accounts({ authority: authority, payer: wallet.publicKey, mint: mint })
       .rpc();
 
     console.log(`Transaction Signature: ${txSig}`);
 
     console.log((await program.account.authority.fetch(authority)).mutable);
-  });
-
-  it("Change Issuance Fee", async () => {
-    const txSig = await program.methods
-      .changeIssuanceFee(1)
-      .accounts({ authority: authority, payer: wallet.publicKey })
-      .rpc();
-
-    console.log(`Transaction Signature: ${txSig}`);
-  });
-
-  it("Change Redemption Fee", async () => {
-    const txSig = await program.methods
-      .changeRedemptionFee(1)
-      .accounts({ authority: authority, payer: wallet.publicKey })
-      .rpc();
-
-    console.log(`Transaction Signature: ${txSig}`);
   });
 
   it("Change Transfer Fee", async () => {

@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-candy_wrapper = "4iKL2rCj42ZmvtzPQBadTcNndneJR2FRtJSmc8XzXAp9"
+wild_fire = "2L4rVgwdUgb8KbXyk7VgmrTGtY6XSayaMofF3HMj833E"
 
 [registry]
 url = "https://api.apr.dev"

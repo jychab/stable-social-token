@@ -4,12 +4,9 @@ use solana_program::pubkey;
 #[account(zero_copy)]
 pub struct Authority {
     pub fees_collected: u64,
-    pub mint_to_base_ratio: u16,
-    pub issuance_fee_basis_pts: u16,
-    pub redemption_fee_basis_pts: u16,
-    pub mutable: u8,
     pub bump: u8,
-    pub base_coin: Pubkey,
+    pub mutable: u8,
+    pub padding: [u8; 6],
     pub mint: Pubkey,
     pub fee_collector: Pubkey,
     pub admin: Pubkey,
@@ -25,4 +22,4 @@ pub struct ProtocolFeeConfig {
 pub const PROTOCOL_FEE_CONFIG_SPACE: usize = 8 + std::mem::size_of::<ProtocolFeeConfig>();
 
 // multi-sig wallet
-pub const PROTOCOL_WALLET: Pubkey = pubkey!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
+pub const PROTOCOL_WALLET: Pubkey = pubkey!("FjsF2dg1njhxL9Cv1VezzHropmUDTWRQpcWLANv3jVR2");
